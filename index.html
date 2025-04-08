@@ -34,12 +34,18 @@
     td a:hover {
       text-decoration: underline;
     }
+    .positive {
+      color: lime;
+    }
+    .negative {
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Meme Coin Radar - GPTfix_01</h1>
+  <h1>🚀 SOIXIOS Meme Coin Radar</h1>
   <p>Live Top 10 Meme Coins (1H Price + Volume)</p>
-  <table>
+  <table id="coin-table">
     <tr>
       <th>Name</th>
       <th>Symbol</th>
@@ -51,36 +57,44 @@
 
   <script>
     async function loadMemeCoins() {
-      const res = await fetch("https://corsproxy.io/?https://api.dexscreener.com/latest/dex/pairs/trending");
-      const data = await res.json();
+      try {
+        const res = await fetch("https://corsproxy.io/?https://api.dexscreener.com/latest/dex/pairs/trending");
+        const data = await res.json();
 
-      const table = document.querySelector("table");
-      const top10 = data.pairs
-        .filter(p =>
-          p.baseToken.name.toLowerCase().includes("pepe") ||
-          p.baseToken.name.toLowerCase().includes("doge") ||
-          p.baseToken.name.toLowerCase().includes("elon") ||
-          p.baseToken.name.toLowerCase().includes("floki") ||
-          p.baseToken.name.toLowerCase().includes("baby") ||
-          p.baseToken.name.toLowerCase().includes("cat") ||
-          p.baseToken.name.toLowerCase().includes("meme") ||
-          p.baseToken.name.toLowerCase().includes("shiba")
-        )
-        .slice(0, 10);
+        const table = document.getElementById("coin-table");
 
-      top10.forEach(pair => {
-        const row = document.createElement("tr");
+        const top10 = data.pairs
+          .filter(p =>
+            p.baseToken.name.toLowerCase().includes("pepe") ||
+            p.baseToken.name.toLowerCase().includes("doge") ||
+            p.baseToken.name.toLowerCase().includes("elon") ||
+            p.baseToken.name.toLowerCase().includes("floki") ||
+            p.baseToken.name.toLowerCase().includes("baby") ||
+            p.baseToken.name.toLowerCase().includes("meme") ||
+            p.baseToken.name.toLowerCase().includes("cat") ||
+            p.baseToken.name.toLowerCase().includes("shib") ||
+            p.baseToken.name.toLowerCase().includes("inu")
+          )
+          .slice(0, 10);
 
-        row.innerHTML = `
-          <td>${pair.baseToken.name}</td>
-          <td>${pair.baseToken.symbol}</td>
-          <td style="color: ${pair.priceChange.h1 > 0 ? 'lime' : 'red'}">${pair.priceChange.h1?.toFixed(2) || 0}%</td>
-          <td>$${Number(pair.volume.h1).toLocaleString()}</td>
-          <td><a href="${pair.url}" target="_blank">View</a></td>
-        `;
+        top10.forEach(pair => {
+          const row = document.createElement("tr");
+          const priceClass = pair.priceChange?.h1 > 0 ? 'positive' : 'negative';
 
-        table.appendChild(row);
-      });
+          row.innerHTML = `
+            <td>${pair.baseToken.name}</td>
+            <td>${pair.baseToken.symbol}</td>
+            <td class="${priceClass}">${pair.priceChange?.h1?.toFixed(2) || 0}%</td>
+            <td>$${Number(pair.volume?.h1 || 0).toLocaleString()}</td>
+            <td><a href="${pair.url}" target="_blank">View</a></td>
+          `;
+
+          table.appendChild(row);
+        });
+
+      } catch (err) {
+        console.error("Error loading meme coins:", err);
+      }
     }
 
     loadMemeCoins();
