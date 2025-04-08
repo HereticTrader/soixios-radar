@@ -49,6 +49,10 @@
       color: white;
       border: 1px solid #555;
     }
+    .sparkline {
+      height: 30px;
+      width: 100px;
+    }
   </style>
 </head>
 <body>
@@ -77,6 +81,7 @@
         <th>Symbol</th>
         <th>Close</th>
         <th>EMA Signal</th>
+        <th>Trend</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -92,16 +97,38 @@
       return parseFloat(ema);
     }
 
+    function drawSparkline(data) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 100;
+      canvas.height = 30;
+      canvas.className = "sparkline";
+      const ctx = canvas.getContext("2d");
+
+      ctx.strokeStyle = "lime";
+      ctx.beginPath();
+      data.forEach((c, i) => {
+        const x = i * (canvas.width / data.length);
+        const y = canvas.height - (parseFloat(c[4]) / Math.max(...data.map(d => parseFloat(d[4]))) * canvas.height);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      return canvas;
+    }
+
     async function fetchMemeRadar() {
       const results = [];
       const interval = document.getElementById("interval").value;
       const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
 
       for (let symbol of manualCoins) {
-        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`;
+        let data = [];
         try {
-          const res = await fetch(url);
-          const data = await res.json();
+          let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          if (res.status !== 200) {
+            res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          }
+          data = await res.json();
           if (!Array.isArray(data)) continue;
 
           const curr = data[data.length - 1];
@@ -113,7 +140,7 @@
           if (close > ema8 && ema8 > ema13) signal = "EMA LONG";
           else if (close < ema8 && ema8 < ema13) signal = "EMA SHORT";
 
-          results.push({ symbol, close: close.toFixed(6), signal });
+          results.push({ symbol, close: close.toFixed(6), signal, data });
         } catch (e) {
           console.warn("Error:", symbol);
         }
@@ -132,11 +159,15 @@
         return true;
       }).forEach(row => {
         const tr = document.createElement("tr");
+        const trendCell = document.createElement("td");
+        trendCell.appendChild(drawSparkline(row.data));
+
         tr.innerHTML = `
           <td>${row.symbol}</td>
           <td>${row.close}</td>
           <td class="check">${row.signal}</td>
         `;
+        tr.appendChild(trendCell);
         tbody.appendChild(tr);
       });
     }
