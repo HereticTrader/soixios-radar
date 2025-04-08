@@ -42,24 +42,35 @@
       background: lime;
       color: black;
     }
+    select {
+      margin-left: 1rem;
+      padding: 0.4rem;
+      background: #111;
+      color: white;
+      border: 1px solid #555;
+    }
   </style>
 </head>
 <body>
   <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar</h1>
-  <p>Tracking 15-Minute Price + Volume + EMA Surges</p>
+  <p>Tracking EMA Logic (Close > EMA8 > EMA13)</p>
 
   <div class="tabs">
     <button onclick="showTab('all')" class="active">All</button>
     <button onclick="showTab('long')">LONG Setup ⬆️</button>
     <button onclick="showTab('short')">SHORT Setup ⬇️</button>
+    <label for="interval">Timeframe:</label>
+    <select id="interval" onchange="fetchMemeRadar()">
+      <option value="3m">3m</option>
+      <option value="5m">5m</option>
+      <option value="15m" selected>15m</option>
+    </select>
   </div>
 
   <table id="radar-table">
     <thead>
       <tr>
         <th>Symbol</th>
-        <th>Price Change (3m)</th>
-        <th>Volume Change (3m)</th>
         <th>Close</th>
         <th>EMA8</th>
         <th>EMA13</th>
@@ -87,19 +98,16 @@
 
     async function fetchMemeRadar() {
       const results = [];
+      const interval = document.getElementById("interval").value;
       for (let symbol of manualCoins) {
-        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=3m&limit=15`;
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`;
         try {
           const res = await fetch(url);
           const data = await res.json();
           if (!Array.isArray(data)) continue;
 
           const curr = data[data.length - 1];
-          const prev = data[data.length - 2];
-
           const close = parseFloat(curr[4]);
-          const priceChange = ((close - parseFloat(prev[4])) / parseFloat(prev[4])) * 100;
-          const volumeChange = ((parseFloat(curr[5]) - parseFloat(prev[5])) / parseFloat(prev[5])) * 100;
 
           const ema8 = calcEMA(data.slice(-8), 8);
           const ema13 = calcEMA(data.slice(-13), 13);
@@ -110,8 +118,6 @@
 
           results.push({
             symbol,
-            priceChange: priceChange.toFixed(2),
-            volumeChange: volumeChange.toFixed(2),
             close: close.toFixed(6),
             ema8: ema8.toFixed(6),
             ema13: ema13.toFixed(6),
@@ -137,8 +143,6 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${row.symbol}</td>
-          <td class="${row.priceChange > 0 ? 'green' : 'red'}">${row.priceChange}%</td>
-          <td class="${row.volumeChange > 0 ? 'green' : 'red'}">${row.volumeChange}%</td>
           <td>${row.close}</td>
           <td>${row.ema8}</td>
           <td>${row.ema13}</td>
