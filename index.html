@@ -63,23 +63,19 @@
     <button onclick="showTab('all')" class="active">All</button>
     <button onclick="showTab('long')">EMA LONG</button>
     <button onclick="showTab('short')">EMA SHORT</button>
-    <label for="interval">Timeframe:</label>
-    <select id="interval">
-      <option value="3m">3m</option>
-      <option value="5m">5m</option>
-      <option value="15m">15m</option>
-    </select>
-    <button onclick="fetchMemeRadar()">Commit</button>
+    <button onclick="setIntervalTab('3m')">3M</button>
+    <button onclick="setIntervalTab('5m')">5M</button>
+    <button onclick="setIntervalTab('15m')">15M</button>
   </div>
 
-  <p>Enter 10 symbols (comma-separated):</p>
-  <input type="text" id="coinInput" value="DOGEUSDT,SHIBUSDT,PEPEUSDT,FLOKIUSDT,1000BONKUSDT,1000SATSUSDT,1000LUNCUSDT,BABYDOGEUSDT,HARRYUSDT,LADYSUSDT" style="width: 100%;" />
+  <p>Favorites (comma-separated):</p>
+  <input type="text" id="coinInput" value="DOGEUSDT,SHIBUSDT,PEPEUSDT,ARCUSDT,ALCHUSDT,FUNUSDT" style="width: 100%;" />
 
   <table id="radar-table">
     <thead>
       <tr>
         <th>Symbol</th>
-        <th>Close</th>
+        <th>Close (H-L)</th>
         <th>EMA Signal</th>
         <th>Trend</th>
       </tr>
@@ -88,6 +84,13 @@
   </table>
 
   <script>
+    let activeInterval = "3m";
+
+    function setIntervalTab(interval) {
+      activeInterval = interval;
+      fetchMemeRadar();
+    }
+
     function calcEMA(data, length) {
       const k = 2 / (length + 1);
       let ema = parseFloat(data[0][4]);
@@ -118,21 +121,22 @@
 
     async function fetchMemeRadar() {
       const results = [];
-      const interval = document.getElementById("interval").value;
       const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
 
       for (let symbol of manualCoins) {
         let data = [];
         try {
-          let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${activeInterval}&limit=15`);
           if (res.status !== 200) {
-            res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+            res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${activeInterval}&limit=15`);
           }
           data = await res.json();
           if (!Array.isArray(data)) continue;
 
           const curr = data[data.length - 1];
           const close = parseFloat(curr[4]);
+          const high = Math.max(...data.map(d => parseFloat(d[2])));
+          const low = Math.min(...data.map(d => parseFloat(d[3])));
           const ema8 = calcEMA(data.slice(-8), 8);
           const ema13 = calcEMA(data.slice(-13), 13);
 
@@ -140,7 +144,7 @@
           if (close > ema8 && ema8 > ema13) signal = "EMA LONG";
           else if (close < ema8 && ema8 < ema13) signal = "EMA SHORT";
 
-          results.push({ symbol, close: close.toFixed(6), signal, data });
+          results.push({ symbol, close: `${close.toFixed(6)} (H-${high.toFixed(6)},L-${low.toFixed(6)})`, signal, data });
         } catch (e) {
           console.warn("Error:", symbol);
         }
@@ -178,6 +182,7 @@
       renderTable(window._soixData || [], tab);
     }
 
+    setInterval(fetchMemeRadar, 60000);
     fetchMemeRadar();
   </script>
 </body>
