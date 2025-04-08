@@ -1,60 +1,127 @@
-// 🧬 SOIXIOS MEME COIN CORE - Binance BNB Chain Radar
-
-// ✅ Handpicked Meme Coins Listed on Binance & Verified on BNB Chain
-const memeCoinsBNB = [
-  "DOGEUSDT",       // Classic meme king
-  "SHIBUSDT",       // OG Ethereum-BNB bridged
-  "PEPEUSDT",       // Exploded recently
-  "FLOKIUSDT",      // Musk-based dog cult
-  "1000BONKUSDT",   // Solana coin, but bridged
-  "1000SATSUSDT",   // New wave meme coin
-  "1000LUNCUSDT",   // TerraLuna zombie coin
-  "BABYDOGEUSDT",   // BSC-born meme
-  "HARRYUSDT",      // Weird meme listing
-  "LADYSUSDT"        // Lady-themed Twitter memecoin
-];
-
-
-// 🧠 Core Function: Fetch 15m Candle Data & Detect Price/Volume Surges
-async function fetchMemeRadar() {
-  const results = [];
-
-  for (let symbol of memeCoinsBNB) {
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=2`;
-
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!Array.isArray(data)) continue;
-
-      const prev = data[0];
-      const curr = data[1];
-
-      const pricePrev = parseFloat(prev[4]); // previous close
-      const priceCurr = parseFloat(curr[4]); // current close
-      const volumePrev = parseFloat(prev[5]);
-      const volumeCurr = parseFloat(curr[5]);
-
-      const priceChange = ((priceCurr - pricePrev) / pricePrev) * 100;
-      const volumeChange = ((volumeCurr - volumePrev) / volumePrev) * 100;
-
-      results.push({
-        symbol,
-        priceChange: priceChange.toFixed(2),
-        volumeChange: volumeChange.toFixed(2),
-        both: priceChange > 0 && volumeChange > 0
-      });
-    } catch (err) {
-      console.warn(`Error fetching ${symbol}:`, err);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SOIXIOS Meme Coin Radar</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: monospace;
+      padding: 2rem;
     }
-  }
+    h1 {
+      font-size: 1.8rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 0.8rem;
+      text-align: center;
+    }
+    th {
+      background-color: #111;
+    }
+    .green {
+      color: lime;
+    }
+    .red {
+      color: red;
+    }
+    .check {
+      font-weight: bold;
+      color: cyan;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar</h1>
+  <p>Tracking 15-Minute Price + Volume Surges</p>
+  <table id="radar-table">
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Price Change (15m)</th>
+        <th>Volume Change (15m)</th>
+        <th>Both ↑</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-  return results;
-}
+  <script>
+    const memeCoinsBNB = [
+      "DOGEUSDT",
+      "SHIBUSDT",
+      "PEPEUSDT",
+      "FLOKIUSDT",
+      "1000BONKUSDT",
+      "1000SATSUSDT",
+      "1000LUNCUSDT",
+      "BABYDOGEUSDT",
+      "HARRYUSDT",
+      "LADYSUSDT"
+    ];
 
+    async function fetchMemeRadar() {
+      const results = [];
 
-// ⚡ Example usage (in UI or console)
-fetchMemeRadar().then(radar => {
-  console.table(radar);
-});
+      for (let symbol of memeCoinsBNB) {
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=2`;
+
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (!Array.isArray(data)) continue;
+
+          const prev = data[0];
+          const curr = data[1];
+
+          const pricePrev = parseFloat(prev[4]);
+          const priceCurr = parseFloat(curr[4]);
+          const volumePrev = parseFloat(prev[5]);
+          const volumeCurr = parseFloat(curr[5]);
+
+          const priceChange = ((priceCurr - pricePrev) / pricePrev) * 100;
+          const volumeChange = ((volumeCurr - volumePrev) / volumePrev) * 100;
+
+          results.push({
+            symbol,
+            priceChange: priceChange.toFixed(2),
+            volumeChange: volumeChange.toFixed(2),
+            both: priceChange > 0 && volumeChange > 0
+          });
+        } catch (err) {
+          console.warn(`Error fetching ${symbol}:`, err);
+        }
+      }
+
+      return results;
+    }
+
+    function renderTable(data) {
+      const tbody = document.querySelector("#radar-table tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.symbol}</td>
+          <td class="${row.priceChange > 0 ? 'green' : 'red'}">${row.priceChange}%</td>
+          <td class="${row.volumeChange > 0 ? 'green' : 'red'}">${row.volumeChange}%</td>
+          <td class="check">${row.both ? '✅' : ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    fetchMemeRadar().then(renderTable);
+  </script>
+</body>
+</html>
