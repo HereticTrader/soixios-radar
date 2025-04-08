@@ -46,8 +46,8 @@
     <thead>
       <tr>
         <th>Symbol</th>
-        <th>Price Change (15m)</th>
-        <th>Volume Change (15m)</th>
+        <th>Price Change (3m)</th>
+        <th>Volume Change (3m)</th>
         <th>Both ↑</th>
       </tr>
     </thead>
@@ -72,7 +72,7 @@
       const results = [];
 
       for (let symbol of memeCoinsBNB) {
-        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=2`;
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=3m&limit=2`;
 
         try {
           const response = await fetch(url);
