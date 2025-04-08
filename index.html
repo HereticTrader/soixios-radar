@@ -34,12 +34,8 @@
     td a:hover {
       text-decoration: underline;
     }
-    .positive {
-      color: lime;
-    }
-    .negative {
-      color: red;
-    }
+    .positive { color: lime; }
+    .negative { color: red; }
   </style>
 </head>
 <body>
@@ -58,7 +54,7 @@
   <script>
     async function loadMemeCoins() {
       try {
-        const res = await fetch("https://corsproxy.io/?https://api.dexscreener.com/latest/dex/pairs/trending");
+        const res = await fetch("https://api.allorigins.win/raw?url=https://api.dexscreener.com/latest/dex/pairs/trending");
         const data = await res.json();
 
         const table = document.getElementById("coin-table");
@@ -93,7 +89,7 @@
         });
 
       } catch (err) {
-        console.error("Error loading meme coins:", err);
+        console.error("🔥 Error loading meme coins:", err);
       }
     }
 
