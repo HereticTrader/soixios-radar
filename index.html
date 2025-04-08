@@ -42,7 +42,7 @@
       background: lime;
       color: black;
     }
-    select {
+    select, input[type="text"] {
       margin-left: 1rem;
       padding: 0.4rem;
       background: #111;
@@ -53,40 +53,36 @@
 </head>
 <body>
   <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar</h1>
-  <p>Tracking EMA Logic (Close > EMA8 > EMA13)</p>
+  <p>Tracking EMA Logic Only (Long / Short / None)</p>
 
   <div class="tabs">
     <button onclick="showTab('all')" class="active">All</button>
-    <button onclick="showTab('long')">LONG Setup ⬆️</button>
-    <button onclick="showTab('short')">SHORT Setup ⬇️</button>
+    <button onclick="showTab('long')">EMA LONG</button>
+    <button onclick="showTab('short')">EMA SHORT</button>
     <label for="interval">Timeframe:</label>
-    <select id="interval" onchange="fetchMemeRadar()">
+    <select id="interval">
       <option value="3m">3m</option>
       <option value="5m">5m</option>
-      <option value="15m" selected>15m</option>
+      <option value="15m">15m</option>
     </select>
+    <button onclick="fetchMemeRadar()">Commit</button>
   </div>
+
+  <p>Enter 10 symbols (comma-separated):</p>
+  <input type="text" id="coinInput" value="DOGEUSDT,SHIBUSDT,PEPEUSDT,FLOKIUSDT,1000BONKUSDT,1000SATSUSDT,1000LUNCUSDT,BABYDOGEUSDT,HARRYUSDT,LADYSUSDT" style="width: 100%;" />
 
   <table id="radar-table">
     <thead>
       <tr>
         <th>Symbol</th>
         <th>Close</th>
-        <th>EMA8</th>
-        <th>EMA13</th>
-        <th>Signal</th>
+        <th>EMA Signal</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    const manualCoins = [
-      "DOGEUSDT", "SHIBUSDT", "PEPEUSDT",
-      "FLOKIUSDT", "1000BONKUSDT", "1000SATSUSDT",
-      "1000LUNCUSDT", "BABYDOGEUSDT", "HARRYUSDT", "LADYSUSDT"
-    ];
-
     function calcEMA(data, length) {
       const k = 2 / (length + 1);
       let ema = parseFloat(data[0][4]);
@@ -99,6 +95,8 @@
     async function fetchMemeRadar() {
       const results = [];
       const interval = document.getElementById("interval").value;
+      const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
+
       for (let symbol of manualCoins) {
         const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`;
         try {
@@ -108,21 +106,14 @@
 
           const curr = data[data.length - 1];
           const close = parseFloat(curr[4]);
-
           const ema8 = calcEMA(data.slice(-8), 8);
           const ema13 = calcEMA(data.slice(-13), 13);
 
-          let signal = "";
-          if (close > ema8 && ema8 > ema13) signal = "LONG";
-          if (close < ema8 && ema8 < ema13) signal = "SHORT";
+          let signal = "EMA NONE";
+          if (close > ema8 && ema8 > ema13) signal = "EMA LONG";
+          else if (close < ema8 && ema8 < ema13) signal = "EMA SHORT";
 
-          results.push({
-            symbol,
-            close: close.toFixed(6),
-            ema8: ema8.toFixed(6),
-            ema13: ema13.toFixed(6),
-            signal
-          });
+          results.push({ symbol, close: close.toFixed(6), signal });
         } catch (e) {
           console.warn("Error:", symbol);
         }
@@ -136,16 +127,14 @@
       tbody.innerHTML = "";
 
       data.filter(row => {
-        if (tab === 'long') return row.signal === "LONG";
-        if (tab === 'short') return row.signal === "SHORT";
+        if (tab === 'long') return row.signal === "EMA LONG";
+        if (tab === 'short') return row.signal === "EMA SHORT";
         return true;
       }).forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${row.symbol}</td>
           <td>${row.close}</td>
-          <td>${row.ema8}</td>
-          <td>${row.ema13}</td>
           <td class="check">${row.signal}</td>
         `;
         tbody.appendChild(tr);
@@ -155,7 +144,7 @@
     function showTab(tab) {
       document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
       document.querySelector(`.tabs button[onclick="showTab('${tab}')"]`).classList.add("active");
-      renderTable(window._soixData, tab);
+      renderTable(window._soixData || [], tab);
     }
 
     fetchMemeRadar();
