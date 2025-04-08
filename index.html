@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SOIXIOS Meme Coin Radar</title>
   <style>
     body {
@@ -27,101 +27,134 @@
     th {
       background-color: #111;
     }
-    .green {
-      color: lime;
+    .green { color: lime; }
+    .red { color: red; }
+    .check { font-weight: bold; color: cyan; }
+    .tabs button {
+      margin-right: 1rem;
+      background: #111;
+      color: white;
+      border: 1px solid #555;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
     }
-    .red {
-      color: red;
-    }
-    .check {
-      font-weight: bold;
-      color: cyan;
+    .tabs button.active {
+      background: lime;
+      color: black;
     }
   </style>
 </head>
 <body>
   <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar</h1>
-  <p>Tracking 15-Minute Price + Volume Surges</p>
+  <p>Tracking 15-Minute Price + Volume + EMA Surges</p>
+
+  <div class="tabs">
+    <button onclick="showTab('all')" class="active">All</button>
+    <button onclick="showTab('long')">LONG Setup ⬆️</button>
+    <button onclick="showTab('short')">SHORT Setup ⬇️</button>
+  </div>
+
   <table id="radar-table">
     <thead>
       <tr>
         <th>Symbol</th>
         <th>Price Change (3m)</th>
         <th>Volume Change (3m)</th>
-        <th>Both ↑</th>
+        <th>Close</th>
+        <th>EMA8</th>
+        <th>EMA13</th>
+        <th>Signal</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    const memeCoinsBNB = [
-      "DOGEUSDT",
-      "SHIBUSDT",
-      "PEPEUSDT",
-      "FLOKIUSDT",
-      "1000BONKUSDT",
-      "1000SATSUSDT",
-      "1000LUNCUSDT",
-      "BABYDOGEUSDT",
-      "HARRYUSDT",
-      "LADYSUSDT"
+    const manualCoins = [
+      "DOGEUSDT", "SHIBUSDT", "PEPEUSDT",
+      "FLOKIUSDT", "1000BONKUSDT", "1000SATSUSDT",
+      "1000LUNCUSDT", "BABYDOGEUSDT", "HARRYUSDT", "LADYSUSDT"
     ];
+
+    function calcEMA(data, length) {
+      const k = 2 / (length + 1);
+      let ema = parseFloat(data[0][4]);
+      for (let i = 1; i < data.length; i++) {
+        ema = data[i][4] * k + ema * (1 - k);
+      }
+      return parseFloat(ema);
+    }
 
     async function fetchMemeRadar() {
       const results = [];
-
-      for (let symbol of memeCoinsBNB) {
-        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=3m&limit=2`;
-
+      for (let symbol of manualCoins) {
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=3m&limit=15`;
         try {
-          const response = await fetch(url);
-          const data = await response.json();
-
+          const res = await fetch(url);
+          const data = await res.json();
           if (!Array.isArray(data)) continue;
 
-          const prev = data[0];
-          const curr = data[1];
+          const curr = data[data.length - 1];
+          const prev = data[data.length - 2];
 
-          const pricePrev = parseFloat(prev[4]);
-          const priceCurr = parseFloat(curr[4]);
-          const volumePrev = parseFloat(prev[5]);
-          const volumeCurr = parseFloat(curr[5]);
+          const close = parseFloat(curr[4]);
+          const priceChange = ((close - parseFloat(prev[4])) / parseFloat(prev[4])) * 100;
+          const volumeChange = ((parseFloat(curr[5]) - parseFloat(prev[5])) / parseFloat(prev[5])) * 100;
 
-          const priceChange = ((priceCurr - pricePrev) / pricePrev) * 100;
-          const volumeChange = ((volumeCurr - volumePrev) / volumePrev) * 100;
+          const ema8 = calcEMA(data.slice(-8), 8);
+          const ema13 = calcEMA(data.slice(-13), 13);
+
+          let signal = "";
+          if (close > ema8 && ema8 > ema13) signal = "LONG";
+          if (close < ema8 && ema8 < ema13) signal = "SHORT";
 
           results.push({
             symbol,
             priceChange: priceChange.toFixed(2),
             volumeChange: volumeChange.toFixed(2),
-            both: priceChange > 0 && volumeChange > 0
+            close: close.toFixed(6),
+            ema8: ema8.toFixed(6),
+            ema13: ema13.toFixed(6),
+            signal
           });
-        } catch (err) {
-          console.warn(`Error fetching ${symbol}:`, err);
+        } catch (e) {
+          console.warn("Error:", symbol);
         }
       }
-
-      return results;
+      renderTable(results, 'all');
+      window._soixData = results;
     }
 
-    function renderTable(data) {
+    function renderTable(data, tab) {
       const tbody = document.querySelector("#radar-table tbody");
       tbody.innerHTML = "";
 
-      data.forEach(row => {
+      data.filter(row => {
+        if (tab === 'long') return row.signal === "LONG";
+        if (tab === 'short') return row.signal === "SHORT";
+        return true;
+      }).forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${row.symbol}</td>
           <td class="${row.priceChange > 0 ? 'green' : 'red'}">${row.priceChange}%</td>
           <td class="${row.volumeChange > 0 ? 'green' : 'red'}">${row.volumeChange}%</td>
-          <td class="check">${row.both ? '✅' : ''}</td>
+          <td>${row.close}</td>
+          <td>${row.ema8}</td>
+          <td>${row.ema13}</td>
+          <td class="check">${row.signal}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    fetchMemeRadar().then(renderTable);
+    function showTab(tab) {
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+      document.querySelector(`.tabs button[onclick="showTab('${tab}')"]`).classList.add("active");
+      renderTable(window._soixData, tab);
+    }
+
+    fetchMemeRadar();
   </script>
 </body>
 </html>
