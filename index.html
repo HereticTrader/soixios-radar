@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOIXIOS Coin Radar |Hello ALEX!:)</title>
+  <title>SOIXIOS - HERETIC TRADER BINANCE RADAR - HELLO ALEX :)) </title>
   <style>
     body {
       background-color: black;
@@ -78,24 +78,24 @@
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar (PATCH TRUE FUTURES FALLBACK)</h1>
+  <h1>🚀 SOIXIOS - HERETIC TRADER BINANCE RADAR - HELLO ALEX :))</h1>
 
   <div class="top-controls">
     <div class="refresh-group">
       <label>Refresh every:</label>
       <select id="refreshSelector" onchange="setRefreshInterval()">
-        <option value="15">15s</option>
+        <option value="15" selected>15s</option>
         <option value="30">30s</option>
-        <option value="60" selected>60s</option>
+        <option value="60">60s</option>
         <option value="120">120s</option>
       </select>
-      <span id="refresh-counter">⏳ 60</span>
+      <span id="refresh-counter">⏳ 15</span>
     </div>
     <button onclick="exportToCSV()" class="export-btn">📦 Export CSV</button>
   </div>
 
   <p>Favorites (comma-separated):</p>
-  <input type="text" id="coinInput" value="DOGEUSDT,SHIBUSDT,PEPEUSDT,ARCUSDT.P,ALCHUSDT.P,FUNUSDT" style="width: 100%;" />
+  <input type="text" id="coinInput" value="BTCUSDT,ARCUSDT,ALCHUSDT,FUNUSDT,TRUMPUSDT,XRPUSDT,TSTUSDT" style="width: 100%;" />
 
   <table id="radar-table">
     <thead>
@@ -113,8 +113,8 @@
   </table>
 
   <script>
-    let refreshCountdown = 60;
-    let refreshInterval = 60;
+    let refreshCountdown = 15;
+    let refreshInterval = 15;
 
     function setRefreshInterval() {
       refreshInterval = parseInt(document.getElementById("refreshSelector").value);
