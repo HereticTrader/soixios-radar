@@ -29,7 +29,9 @@
     }
     .green { color: lime; }
     .red { color: red; }
-    .check { font-weight: bold; color: cyan; }
+    .ema-long { color: #00ffff; font-weight: bold; }
+    .ema-short { color: #d900ff; font-weight: bold; }
+    .ema-none { color: gray; font-weight: bold; }
     .tabs button {
       margin-right: 1rem;
       background: #111;
@@ -53,10 +55,15 @@
       height: 30px;
       width: 100px;
     }
+    #refresh-counter {
+      float: right;
+      font-size: 1rem;
+      color: yellow;
+    }
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar</h1>
+  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar <span id="refresh-counter">⏳ 60</span></h1>
   <p>Tracking EMA Logic Only (Long / Short / None)</p>
 
   <div class="tabs">
@@ -85,6 +92,7 @@
 
   <script>
     let activeInterval = "3m";
+    let refreshCountdown = 60;
 
     function setIntervalTab(interval) {
       activeInterval = interval;
@@ -141,10 +149,17 @@
           const ema13 = calcEMA(data.slice(-13), 13);
 
           let signal = "EMA NONE";
-          if (close > ema8 && ema8 > ema13) signal = "EMA LONG";
-          else if (close < ema8 && ema8 < ema13) signal = "EMA SHORT";
+          let signalClass = "ema-none";
+          if (close > ema8 && ema8 > ema13) {
+            signal = "EMA LONG";
+            signalClass = "ema-long";
+          }
+          else if (close < ema8 && ema8 < ema13) {
+            signal = "EMA SHORT";
+            signalClass = "ema-short";
+          }
 
-          results.push({ symbol, close: `${close.toFixed(6)} (H-${high.toFixed(6)},L-${low.toFixed(6)})`, signal, data });
+          results.push({ symbol, close: `${close.toFixed(6)} <span style='color:gray'>(H-${high.toFixed(6)},L-${low.toFixed(6)})</span>`, signal, signalClass, data });
         } catch (e) {
           console.warn("Error:", symbol);
         }
@@ -169,7 +184,7 @@
         tr.innerHTML = `
           <td>${row.symbol}</td>
           <td>${row.close}</td>
-          <td class="check">${row.signal}</td>
+          <td class="${row.signalClass}">${row.signal}</td>
         `;
         tr.appendChild(trendCell);
         tbody.appendChild(tr);
@@ -182,7 +197,16 @@
       renderTable(window._soixData || [], tab);
     }
 
-    setInterval(fetchMemeRadar, 60000);
+    function updateRefreshCounter() {
+      refreshCountdown--;
+      if (refreshCountdown <= 0) {
+        fetchMemeRadar();
+        refreshCountdown = 60;
+      }
+      document.getElementById("refresh-counter").textContent = `⏳ ${refreshCountdown}`;
+    }
+
+    setInterval(updateRefreshCounter, 1000);
     fetchMemeRadar();
   </script>
 </body>
