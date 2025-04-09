@@ -83,7 +83,6 @@
         <th>3M</th>
         <th>5M</th>
         <th>15M</th>
-        <th>Trend</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -99,25 +98,6 @@
         ema = data[i][4] * k + ema * (1 - k);
       }
       return parseFloat(ema);
-    }
-
-    function drawSparkline(data) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 100;
-      canvas.height = 30;
-      canvas.className = "sparkline";
-      const ctx = canvas.getContext("2d");
-
-      ctx.strokeStyle = "lime";
-      ctx.beginPath();
-      data.forEach((c, i) => {
-        const x = i * (canvas.width / data.length);
-        const y = canvas.height - (parseFloat(c[4]) / Math.max(...data.map(d => parseFloat(d[4]))) * canvas.height);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-      return canvas;
     }
 
     async function fetchAllIntervals() {
@@ -179,9 +159,6 @@
         const high = signal3.high || 0;
         const low = signal3.low || 0;
 
-        const trendCell = document.createElement("td");
-        if (row.data) trendCell.appendChild(drawSparkline(row.data));
-
         tr.innerHTML = `
           <td>${row.symbol}</td>
           <td>${close.toFixed(6)} <span style='color:gray'>(H-${high.toFixed(6)},L-${low.toFixed(6)})</span></td>
@@ -189,7 +166,6 @@
           <td class="${signal5.signalClass || 'ema-none'}">${signal5.signal || '---'}</td>
           <td class="${signal15.signalClass || 'ema-none'}">${signal15.signal || '---'}</td>
         `;
-        tr.appendChild(trendCell);
         tbody.appendChild(tr);
       });
     }
