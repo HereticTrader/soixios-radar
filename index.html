@@ -36,7 +36,7 @@
         <option value="8" selected>8s</option>
         <option value="13">13s</option>
         <option value="21">21s</option>
-        <option value="55">55s</option>
+        <option value="5">5s</option>
       </select>
       <span id="refresh-counter">⏳ 8</span>
     </div>
@@ -62,8 +62,8 @@
   </table>
 
   <script>
-    let refreshCountdown = 8;
-    let refreshInterval = 8;
+    let refreshCountdown = 5;
+    let refreshInterval = 5;
 
     function setRefreshInterval() {
       refreshInterval = parseInt(document.getElementById("refreshSelector").value);
