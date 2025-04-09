@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOIXIOS Meme Coin Radar | PATCH TRUE FUTURES FALLBACK</title>
+  <title>SOIXIOS Coin Radar |Hello ALEX!:)</title>
   <style>
     body {
       background-color: black;
@@ -34,18 +34,6 @@
     .ema-none { color: gray; font-weight: bold; }
     .super-long { background-color: #00ffff33; }
     .super-short { background-color: #d900ff33; }
-    .tabs button {
-      margin-right: 1rem;
-      background: #111;
-      color: white;
-      border: 1px solid #555;
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-    }
-    .tabs button.active {
-      background: lime;
-      color: black;
-    }
     select, input[type="text"] {
       margin-left: 1rem;
       padding: 0.4rem;
@@ -60,36 +48,50 @@
     }
     .close-price {
       font-weight: bold;
-      font-size: 1.1rem;
+      font-size: 1.3rem;
       display: block;
     }
     .hl-info {
       color: gray;
-      font-size: 0.8rem;
+      font-size: 0.7rem;
+    }
+    .top-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .refresh-group {
+      display: flex;
+      align-items: center;
+    }
+    .refresh-group label {
+      margin-right: 0.5rem;
+    }
+    .export-btn {
+      background:#222;
+      color:white;
+      border:1px solid gray;
+      padding:0.3rem 0.8rem;
+      margin-left: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>
-    🚀 SOIXIOS Binance BNB Chain Meme Coin Radar (PATCH TRUE FUTURES FALLBACK)
-    <span id="refresh-counter">⏳ 60</span>
-    <label style="margin-left:2rem;">Refresh every:
+  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar (PATCH TRUE FUTURES FALLBACK)</h1>
+
+  <div class="top-controls">
+    <div class="refresh-group">
+      <label>Refresh every:</label>
       <select id="refreshSelector" onchange="setRefreshInterval()">
         <option value="15">15s</option>
         <option value="30">30s</option>
         <option value="60" selected>60s</option>
         <option value="120">120s</option>
       </select>
-    </label>
-    <button onclick="exportToCSV()" style="float:right;margin-left:1rem;background:#222;color:white;border:1px solid gray;padding:0.3rem 0.8rem;">📦 Export CSV</button>
-  </h1>
-
-  <p>Tracking EMA Logic Only (Long / Short / None)</p>
-
-  <div class="tabs">
-    <button onclick="showTab('all')" class="active">All</button>
-    <button onclick="showTab('long')">EMA LONG</button>
-    <button onclick="showTab('short')">EMA SHORT</button>
+      <span id="refresh-counter">⏳ 60</span>
+    </div>
+    <button onclick="exportToCSV()" class="export-btn">📦 Export CSV</button>
   </div>
 
   <p>Favorites (comma-separated):</p>
