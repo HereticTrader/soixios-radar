@@ -1,84 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOIXIOS Meme Coin Radar | PATCH TRUE FUTURES FALLBACK</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SOIXIOS Meme Coin Radar</title>
   <style>
-    body {
-      background-color: black;
-      color: white;
-      font-family: monospace;
-      padding: 2rem;
-    }
-    h1 {
-      font-size: 1.8rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid #333;
-      padding: 0.6rem;
-      text-align: center;
-    }
-    th {
-      background-color: #111;
-    }
-    .green { color: lime; }
-    .red { color: red; }
+    body { background-color: black; color: white; font-family: monospace; padding: 2rem; }
+    h1 { font-size: 1.8rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #333; padding: 0.6rem; text-align: center; }
+    th { background-color: #111; }
     .ema-long { color: #00ffff; font-weight: bold; }
     .ema-short { color: #d900ff; font-weight: bold; }
     .ema-none { color: gray; font-weight: bold; }
     .super-long { background-color: #00ffff33; }
     .super-short { background-color: #d900ff33; }
+    #refresh-counter { float: right; font-size: 1rem; color: yellow; }
+    .close-price { font-weight: bold; font-size: 1.3rem; display: block; }
+    .hl-info { color: gray; font-size: 0.7rem; }
+    .top-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .refresh-group { display: flex; align-items: center; }
     select, input[type="text"] {
-      margin-left: 1rem;
-      padding: 0.4rem;
-      background: #111;
-      color: white;
-      border: 1px solid #555;
+      margin-left: 1rem; padding: 0.4rem; background: #111; color: white; border: 1px solid #555;
     }
-    #refresh-counter {
-      float: right;
-      font-size: 1rem;
-      color: yellow;
-    }
-    .close-price {
-      font-weight: bold;
-      font-size: 1.3rem;
-      display: block;
-    }
-    .hl-info {
-      color: gray;
-      font-size: 0.7rem;
-    }
-    .top-controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-    .refresh-group {
-      display: flex;
-      align-items: center;
-    }
-    .refresh-group label {
-      margin-right: 0.5rem;
-    }
-    .export-btn {
-      background:#222;
-      color:white;
-      border:1px solid gray;
-      padding:0.3rem 0.8rem;
-      margin-left: 1rem;
-    }
+    .export-btn { background: #222; color: white; border: 1px solid gray; padding: 0.3rem 0.8rem; margin-left: 1rem; }
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS - HERETIC TRADER - 8 SECONDS - EMA 2 </h1>
+  <h1>🚀 SOIXIOS Meme Coin Radar</h1>
 
   <div class="top-controls">
     <div class="refresh-group">
@@ -131,37 +80,34 @@
     }
 
     async function getValidKlines(symbolInput, interval) {
-      const testSymbols = [];
       const base = symbolInput.replace(".P", "");
-      testSymbols.push(base);
-      if (symbolInput.endsWith(".P")) testSymbols.unshift(symbolInput);
+      const testSymbols = symbolInput.endsWith(".P") ? [symbolInput, base] : [base];
 
       for (let symbol of testSymbols) {
         try {
-          let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-          let data = await res.json();
-          if (Array.isArray(data) && data.length && data[0][0]) return data;
-        } catch (e) {}
+          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          const data = await res.json();
+          if (Array.isArray(data)) return data;
+        } catch {}
 
         try {
-          let res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-          let data = await res.json();
-          if (Array.isArray(data) && data.length && data[0][0]) return data;
-        } catch (e) {}
+          const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          const data = await res.json();
+          if (Array.isArray(data)) return data;
+        } catch {}
       }
-
       return null;
     }
 
     async function fetchAllIntervals() {
       const intervals = ["1m", "3m", "5m", "15m", "1h"];
-      const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
+      const coins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
       const results = [];
 
-      for (let originalSymbol of manualCoins) {
-        const row = { symbol: originalSymbol, signals: {}, data: null };
+      for (let symbol of coins) {
+        const row = { symbol, signals: {}, data: null };
         for (let interval of intervals) {
-          const data = await getValidKlines(originalSymbol, interval);
+          const data = await getValidKlines(symbol, interval);
           if (!data) continue;
 
           const curr = data[data.length - 1];
@@ -174,23 +120,26 @@
 
           let signal = "EMA NONE";
           let signalClass = "ema-none";
+          let asterisk = "";
           if (ema2 > ema8 && ema8 > ema13) {
             signal = "EMA LONG";
             signalClass = "ema-long";
+            if (close > ema2) asterisk = "*";
           } else if (ema2 < ema8 && ema8 < ema13) {
             signal = "EMA SHORT";
             signalClass = "ema-short";
+            if (close < ema2) asterisk = "*";
           }
 
-          row.signals[interval] = { signal, signalClass, close, high, low };
+          row.signals[interval] = { signal: signal + asterisk, signalClass, close, high, low };
           if (!row.data) row.data = data;
         }
         results.push(row);
       }
-      renderMultiIntervalTable(results);
+      renderTable(results);
     }
 
-    function renderMultiIntervalTable(rows) {
+    function renderTable(rows) {
       const tbody = document.querySelector("#radar-table tbody");
       tbody.innerHTML = "";
 
@@ -201,13 +150,11 @@
         const s5 = row.signals["5m"] || {};
         const s15 = row.signals["15m"] || {};
         const s1h = row.signals["1h"] || {};
-
         const close = s3.close || 0;
         const high = s3.high || 0;
         const low = s3.low || 0;
-
         const superSignal = s1.signal === s3.signal && s3.signal === s5.signal && s5.signal === s15.signal && s15.signal === s1h.signal && s1.signal !== "EMA NONE";
-        const superClass = superSignal ? (s1.signal === "EMA LONG" ? "super-long" : "super-short") : "";
+        const superClass = superSignal ? (s1.signal.includes("LONG") ? "super-long" : "super-short") : "";
 
         tr.className = superClass;
         tr.innerHTML = `
@@ -217,19 +164,18 @@
           <td class="${s3.signalClass || 'ema-none'}">${s3.signal || '---'}</td>
           <td class="${s5.signalClass || 'ema-none'}">${s5.signal || '---'}</td>
           <td class="${s15.signalClass || 'ema-none'}">${s15.signal || '---'}</td>
-          <td class="${s1h.signalClass || 'ema-none'}">${s1h.signal || '---'}</td>
-        `;
+          <td class="${s1h.signalClass || 'ema-none'}">${s1h.signal || '---'}</td>`;
         tbody.appendChild(tr);
       });
     }
 
     function exportToCSV() {
       const rows = [...document.querySelectorAll("#radar-table tr")];
-      const csv = rows.map(row => [...row.querySelectorAll("td,th")].map(cell => cell.innerText).join(",")).join("\n");
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
+      const csv = rows.map(row => [...row.querySelectorAll("td,th")].map(cell => cell.innerText).join(",")).join("\\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = 'soixios_snapshot.csv';
+      a.download = "soixios_snapshot.csv";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
