@@ -78,18 +78,18 @@
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS - HERETIC TRADER - BINANCE EMA SCREENER - EMA2 instead of close</h1>
+  <h1>🚀 SOIXIOS - HERETIC TRADER - 8 SECONDS - EMA 2 </h1>
 
   <div class="top-controls">
     <div class="refresh-group">
       <label>Refresh every:</label>
       <select id="refreshSelector" onchange="setRefreshInterval()">
-        <option value="15" selected>15s</option>
-        <option value="30">30s</option>
-        <option value="60">60s</option>
-        <option value="120">120s</option>
+        <option value="8" selected>8s</option>
+        <option value="13">13s</option>
+        <option value="21">21s</option>
+        <option value="55">55s</option>
       </select>
-      <span id="refresh-counter">⏳ 15</span>
+      <span id="refresh-counter">⏳ 8</span>
     </div>
     <button onclick="exportToCSV()" class="export-btn">📦 Export CSV</button>
   </div>
@@ -113,8 +113,8 @@
   </table>
 
   <script>
-    let refreshCountdown = 15;
-    let refreshInterval = 15;
+    let refreshCountdown = 8;
+    let refreshInterval = 8;
 
     function setRefreshInterval() {
       refreshInterval = parseInt(document.getElementById("refreshSelector").value);
