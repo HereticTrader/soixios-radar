@@ -84,8 +84,8 @@
     <div class="refresh-group">
       <label>Refresh every:</label>
       <select id="refreshSelector" onchange="setRefreshInterval()">
-        <option value="15" selected>15s</option>
-        <option value="30">30s</option>
+        <option value="8" selected>8s</option>
+        <option value="13">13s</option>
         <option value="60">60s</option>
         <option value="120">120s</option>
       </select>
@@ -113,8 +113,8 @@
   </table>
 
   <script>
-    let refreshCountdown = 15;
-    let refreshInterval = 15;
+    let refreshCountdown = 8;
+    let refreshInterval = 8;
 
     function setRefreshInterval() {
       refreshInterval = parseInt(document.getElementById("refreshSelector").value);
