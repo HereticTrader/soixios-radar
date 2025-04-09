@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOIXIOS Meme Coin Radar</title>
+  <title>SOIXIOS Meme Coin Radar | PATCH TRUE FUTURES FALLBACK</title>
   <style>
     body {
       background-color: black;
@@ -59,7 +59,7 @@
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar <span id="refresh-counter">⏳ 60</span></h1>
+  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar (PATCH TRUE FUTURES FALLBACK) <span id="refresh-counter">⏳ 60</span></h1>
   <p>Tracking EMA Logic Only (Long / Short / None)</p>
 
   <div class="tabs">
@@ -96,6 +96,20 @@
       return parseFloat(ema);
     }
 
+    async function getValidKlines(symbol, interval) {
+      try {
+        let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+        let data = await res.json();
+        if (!Array.isArray(data) || data.length === 0 || !data[0][0]) {
+          res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          data = await res.json();
+        }
+        return Array.isArray(data) && data.length > 0 ? data : null;
+      } catch (err) {
+        return null;
+      }
+    }
+
     async function fetchAllIntervals() {
       const intervals = ["3m", "5m", "15m"];
       const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
@@ -105,37 +119,28 @@
         const symbol = originalSymbol.replace(".P", "");
         const row = { symbol: originalSymbol, signals: {}, data: null };
         for (let interval of intervals) {
-          let data = [];
-          try {
-            let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-            if (res.status !== 200) {
-              res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-            }
-            data = await res.json();
-            if (!Array.isArray(data)) continue;
+          const data = await getValidKlines(symbol, interval);
+          if (!data) continue;
 
-            const curr = data[data.length - 1];
-            const close = parseFloat(curr[4]);
-            const high = Math.max(...data.map(d => parseFloat(d[2])));
-            const low = Math.min(...data.map(d => parseFloat(d[3])));
-            const ema8 = calcEMA(data.slice(-8), 8);
-            const ema13 = calcEMA(data.slice(-13), 13);
+          const curr = data[data.length - 1];
+          const close = parseFloat(curr[4]);
+          const high = Math.max(...data.map(d => parseFloat(d[2])));
+          const low = Math.min(...data.map(d => parseFloat(d[3])));
+          const ema8 = calcEMA(data.slice(-8), 8);
+          const ema13 = calcEMA(data.slice(-13), 13);
 
-            let signal = "EMA NONE";
-            let signalClass = "ema-none";
-            if (close > ema8 && ema8 > ema13) {
-              signal = "EMA LONG";
-              signalClass = "ema-long";
-            } else if (close < ema8 && ema8 < ema13) {
-              signal = "EMA SHORT";
-              signalClass = "ema-short";
-            }
-
-            row.signals[interval] = { signal, signalClass, close, high, low, data };
-            if (!row.data) row.data = data;
-          } catch (e) {
-            console.warn("Error with", symbol, interval);
+          let signal = "EMA NONE";
+          let signalClass = "ema-none";
+          if (close > ema8 && ema8 > ema13) {
+            signal = "EMA LONG";
+            signalClass = "ema-long";
+          } else if (close < ema8 && ema8 < ema13) {
+            signal = "EMA SHORT";
+            signalClass = "ema-short";
           }
+
+          row.signals[interval] = { signal, signalClass, close, high, low, data };
+          if (!row.data) row.data = data;
         }
         results.push(row);
       }
