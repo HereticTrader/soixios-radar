@@ -59,7 +59,19 @@
   </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Binance BNB Chain Meme Coin Radar (PATCH TRUE FUTURES FALLBACK) <span id="refresh-counter">⏳ 60</span></h1>
+  <h1>
+    🚀 SOIXIOS Binance BNB Chain Meme Coin Radar (PATCH TRUE FUTURES FALLBACK)
+    <span id="refresh-counter">⏳ 60</span>
+    <label style="margin-left:2rem;">Refresh every:
+      <select id="refreshSelector" onchange="setRefreshInterval()">
+        <option value="15">15s</option>
+        <option value="30">30s</option>
+        <option value="60" selected>60s</option>
+        <option value="120">120s</option>
+      </select>
+    </label>
+  </h1>
+
   <p>Tracking EMA Logic Only (Long / Short / None)</p>
 
   <div class="tabs">
@@ -79,6 +91,7 @@
         <th>3M</th>
         <th>5M</th>
         <th>15M</th>
+        <th>1H</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -86,6 +99,12 @@
 
   <script>
     let refreshCountdown = 60;
+    let refreshInterval = 60;
+
+    function setRefreshInterval() {
+      refreshInterval = parseInt(document.getElementById("refreshSelector").value);
+      refreshCountdown = refreshInterval;
+    }
 
     function calcEMA(data, length) {
       const k = 2 / (length + 1);
@@ -124,7 +143,7 @@
     }
 
     async function fetchAllIntervals() {
-      const intervals = ["3m", "5m", "15m"];
+      const intervals = ["3m", "5m", "15m", "1h"];
       const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
       const results = [];
 
@@ -165,20 +184,22 @@
 
       rows.forEach(row => {
         const tr = document.createElement("tr");
-        const signal3 = row.signals["3m"] || {};
-        const signal5 = row.signals["5m"] || {};
-        const signal15 = row.signals["15m"] || {};
+        const s3 = row.signals["3m"] || {};
+        const s5 = row.signals["5m"] || {};
+        const s15 = row.signals["15m"] || {};
+        const s1h = row.signals["1h"] || {};
 
-        const close = signal3.close || 0;
-        const high = signal3.high || 0;
-        const low = signal3.low || 0;
+        const close = s3.close || 0;
+        const high = s3.high || 0;
+        const low = s3.low || 0;
 
         tr.innerHTML = `
           <td>${row.symbol}</td>
           <td>${close.toFixed(6)} <span style='color:gray'>(H-${high.toFixed(6)},L-${low.toFixed(6)})</span></td>
-          <td class="${signal3.signalClass || 'ema-none'}">${signal3.signal || '---'}</td>
-          <td class="${signal5.signalClass || 'ema-none'}">${signal5.signal || '---'}</td>
-          <td class="${signal15.signalClass || 'ema-none'}">${signal15.signal || '---'}</td>
+          <td class="${s3.signalClass || 'ema-none'}">${s3.signal || '---'}</td>
+          <td class="${s5.signalClass || 'ema-none'}">${s5.signal || '---'}</td>
+          <td class="${s15.signalClass || 'ema-none'}">${s15.signal || '---'}</td>
+          <td class="${s1h.signalClass || 'ema-none'}">${s1h.signal || '---'}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -188,7 +209,7 @@
       refreshCountdown--;
       if (refreshCountdown <= 0) {
         fetchAllIntervals();
-        refreshCountdown = 60;
+        refreshCountdown = refreshInterval;
       }
       document.getElementById("refresh-counter").textContent = `⏳ ${refreshCountdown}`;
     }
