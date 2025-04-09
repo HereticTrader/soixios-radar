@@ -96,18 +96,31 @@
       return parseFloat(ema);
     }
 
-    async function getValidKlines(symbol, interval) {
-      try {
-        let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-        let data = await res.json();
-        if (!Array.isArray(data) || data.length === 0 || !data[0][0]) {
-          res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-          data = await res.json();
-        }
-        return Array.isArray(data) && data.length > 0 ? data : null;
-      } catch (err) {
-        return null;
+    async function getValidKlines(symbolInput, interval) {
+      const testSymbols = [];
+
+      const base = symbolInput.replace(".P", "");
+      testSymbols.push(base);
+
+      if (symbolInput.endsWith(".P")) {
+        testSymbols.unshift(symbolInput);
       }
+
+      for (let symbol of testSymbols) {
+        try {
+          let res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          let data = await res.json();
+          if (Array.isArray(data) && data.length && data[0][0]) return data;
+        } catch (e) {}
+
+        try {
+          let res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          let data = await res.json();
+          if (Array.isArray(data) && data.length && data[0][0]) return data;
+        } catch (e) {}
+      }
+
+      return null;
     }
 
     async function fetchAllIntervals() {
@@ -116,10 +129,9 @@
       const results = [];
 
       for (let originalSymbol of manualCoins) {
-        const symbol = originalSymbol.replace(".P", "");
         const row = { symbol: originalSymbol, signals: {}, data: null };
         for (let interval of intervals) {
-          const data = await getValidKlines(symbol, interval);
+          const data = await getValidKlines(originalSymbol, interval);
           if (!data) continue;
 
           const curr = data[data.length - 1];
