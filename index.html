@@ -51,10 +51,6 @@
       color: white;
       border: 1px solid #555;
     }
-    .sparkline {
-      height: 30px;
-      width: 100px;
-    }
     #refresh-counter {
       float: right;
       font-size: 1rem;
@@ -73,7 +69,7 @@
   </div>
 
   <p>Favorites (comma-separated):</p>
-  <input type="text" id="coinInput" value="DOGEUSDT,SHIBUSDT,PEPEUSDT,ARCUSDT,ALCHUSDT,FUNUSDT" style="width: 100%;" />
+  <input type="text" id="coinInput" value="DOGEUSDT,SHIBUSDT,PEPEUSDT,ARCUSDT.P,ALCHUSDT.P,FUNUSDT" style="width: 100%;" />
 
   <table id="radar-table">
     <thead>
@@ -105,8 +101,9 @@
       const manualCoins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
       const results = [];
 
-      for (let symbol of manualCoins) {
-        const row = { symbol, signals: {}, data: null };
+      for (let originalSymbol of manualCoins) {
+        const symbol = originalSymbol.replace(".P", "");
+        const row = { symbol: originalSymbol, signals: {}, data: null };
         for (let interval of intervals) {
           let data = [];
           try {
