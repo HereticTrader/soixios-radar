@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SOIXIOS Meme Coin Radar</title>
+  <style>
+    body { background-color: black; color: white; font-family: monospace; padding: 2rem; }
+    h1 { font-size: 1.8rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #333; padding: 0.6rem; text-align: center; }
+    th { background-color: #111; }
+    .ema-long { color: #00ffff; font-weight: bold; }
+    .ema-short { color: #d900ff; font-weight: bold; }
+    .ema-none { color: gray; font-weight: bold; }
+    .super-long { background-color: #00ffff33; }
+    .super-short { background-color: #d900ff33; }
+    #refresh-counter { float: right; font-size: 1rem; color: yellow; }
+    .close-price { font-weight: bold; font-size: 1.3rem; display: block; }
+    .hl-info { color: gray; font-size: 0.7rem; }
+    .top-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .refresh-group { display: flex; align-items: center; }
+    select, input[type="text"] {
+      margin-left: 1rem; padding: 0.4rem; background: #111; color: white; border: 1px solid #555;
+    }
+    .export-btn { background: #222; color: white; border: 1px solid gray; padding: 0.3rem 0.8rem; margin-left: 1rem; }
+    .altcoin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .chart-box { min-height: 200px; overflow: hidden; }
+  </style>
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+  <h1>🚀 SOIXIOS Meme Coin Radar</h1>
+
+  <div style="margin-top: 2rem;">
+    <label for="chartHeight">Chart Height:</label>
+    <input type="number" id="chartHeight" value="300" min="100" max="600" />
+    <label for="gapSize">Chart Gap:</label>
+    <input type="number" id="gapSize" value="0.5" step="0.1" min="0" max="5" />
+    $1
+    <input type="text" id="coinChart" value="ALCHUSDT.P" />
+    <button onclick="loadAltCharts()">📈 Load Altcoin Charts</button>
+
+    <div id="altcoin-wrapper" style="margin-bottom: 0rem;">
+      <div class="altcoin-grid" style="margin-bottom: 0rem; padding-bottom: 0rem; margin-top: 0.2rem;">
+  <div id="tv_alt_1m" class="chart-box"></div>
+  <div id="tv_alt_5m" class="chart-box"></div>
+  <div id="tv_alt_15m" class="chart-box"></div>
+</div>
+    </div>
+  </div>
+
+  <div class="top-controls">
+    <div class="refresh-group">
+      <label>Refresh every:</label>
+      <select id="refreshSelector" onchange="setRefreshInterval()">
+        <option value="8" selected>8s</option>
+        <option value="13">13s</option>
+        <option value="21">21s</option>
+        <option value="5">5s</option>
+      </select>
+      <span id="refresh-counter">⏳ 8</span>
+    </div>
+    <button onclick="exportToCSV()" class="export-btn">📦 Export CSV</button>
+  </div>
+  <p>Favorites (comma-separated):</p>
+  <input type="text" id="coinInput" value="BTCUSDT,ARCUSDT,ALCHUSDT,FUNUSDT,TRUMPUSDT,XRPUSDT,TSTUSDT" style="width: 100%;" />
+
+  <table id="radar-table">
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Close (H-L)</th>
+        <th>1M</th>
+        <th>3M</th>
+        <th>5M</th>
+        <th>15M</th>
+        <th>1H</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div style="margin-top: 3rem;">
+    <div id="tv_btcusdt" class="chart-box"></div>
+  </div>
+
+  <script type="text/javascript">
+    function createChart(id, symbol, interval, height) {
+      new TradingView.widget({
+        "width": "100%",
+        "height": height,
+        "symbol": `BINANCE:${symbol}`,
+        "interval": interval,
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "hide_top_toolbar": false,
+        "hide_legend": false,
+        "container_id": id,
+        "studies": [
+          { "id": "EMA@tv-basicstudies", "inputs": { "length": 8 } },
+          { "id": "EMA@tv-basicstudies", "inputs": { "length": 13 } }
+        ]
+      });
+    }
+
+    function loadAltCharts() {
+      const symbol = document.getElementById("coinChart").value.trim().toUpperCase();
+      const height = parseInt(document.getElementById("chartHeight").value);
+      const intervals = ["1", "5", "15"];
+      const ids = ["tv_alt_1m", "tv_alt_5m", "tv_alt_15m"];
+
+      ids.forEach(id => document.getElementById(id).innerHTML = "");
+
+      if (symbol) {
+        for (let i = 0; i < intervals.length; i++) {
+          createChart(ids[i], symbol, intervals[i], height);
+        }
+      }
+
+      // push table downward
+      const gap = parseFloat(document.getElementById("gapSize").value);
+      document.querySelector(".altcoin-grid").style.marginBottom = `${gap}rem`;
+      document.getElementById("altcoin-wrapper").style.marginBottom = "0px";
+    }
+
+    function loadBTCChart() {
+      const height = parseInt(document.getElementById("chartHeight").value);
+      document.getElementById("tv_btcusdt").innerHTML = "";
+      createChart("tv_btcusdt", "BTCUSDT", "1", height);
+    }
+
+    loadBTCChart();
+    document.getElementById("chartHeight").addEventListener("change", () => {
+      loadBTCChart();
+      loadAltCharts();
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+    // END:)) 
+
+  <script>
+    let refreshCountdown = 5;
+    let refreshInterval = 5;
+
+    function setRefreshInterval() {
+      refreshInterval = parseInt(document.getElementById("refreshSelector").value);
+      refreshCountdown = refreshInterval;
+    }
+
+    function calcEMA(data, length) {
+      const k = 2 / (length + 1);
+      let ema = parseFloat(data[0][4]);
+      for (let i = 1; i < data.length; i++) {
+        ema = data[i][4] * k + ema * (1 - k);
+      }
+      return parseFloat(ema);
+    }
+
+    async function getValidKlines(symbolInput, interval) {
+      const base = symbolInput.replace(".P", "");
+      const testSymbols = symbolInput.endsWith(".P") ? [symbolInput, base] : [base];
+
+      for (let symbol of testSymbols) {
+        try {
+          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          const data = await res.json();
+          if (Array.isArray(data)) return data;
+        } catch {}
+
+        try {
+          const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
+          const data = await res.json();
+          if (Array.isArray(data)) return data;
+        } catch {}
+      }
+      return null;
+    }
+
+    async function fetchAllIntervals() {
+      const intervals = ["1m", "3m", "5m", "15m", "1h"];
+      const coins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
+      const results = [];
+
+      for (let symbol of coins) {
+        const row = { symbol, signals: {}, data: null };
+        for (let interval of intervals) {
+          const data = await getValidKlines(symbol, interval);
+          if (!data) continue;
+
+          const curr = data[data.length - 1];
+          const close = parseFloat(curr[4]);
+          const high = Math.max(...data.map(d => parseFloat(d[2])));
+          const low = Math.min(...data.map(d => parseFloat(d[3])));
+          const ema2 = calcEMA(data.slice(-2), 2);
+          const ema8 = calcEMA(data.slice(-8), 8);
+          const ema13 = calcEMA(data.slice(-13), 13);
+
+          let signal = "EMA NONE";
+          let signalClass = "ema-none";
+          let asterisk = "";
+          if (ema2 > ema8 && ema8 > ema13) {
+            signal = "EMA LONG";
+            signalClass = "ema-long";
+            if (close > ema2) asterisk = "*";
+          } else if (ema2 < ema8 && ema8 < ema13) {
+            signal = "EMA SHORT";
+            signalClass = "ema-short";
+            if (close < ema2) asterisk = "*";
+          }
+
+          row.signals[interval] = { signal: signal + asterisk, signalClass, close, high, low };
+          if (!row.data) row.data = data;
+        }
+        results.push(row);
+      }
+      renderTable(results);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.querySelector("#radar-table tbody");
+      tbody.innerHTML = "";
+
+      rows.forEach(row => {
+        const tr = document.createElement("tr");
+        const s1 = row.signals["1m"] || {};
+        const s3 = row.signals["3m"] || {};
+        const s5 = row.signals["5m"] || {};
+        const s15 = row.signals["15m"] || {};
+        const s1h = row.signals["1h"] || {};
+        const close = s3.close || 0;
+        const high = s3.high || 0;
+        const low = s3.low || 0;
+        const superSignal = s1.signal === s3.signal && s3.signal === s5.signal && s5.signal === s15.signal && s15.signal === s1h.signal && s1.signal !== "EMA NONE";
+        const superClass = superSignal ? (s1.signal.includes("LONG") ? "super-long" : "super-short") : "";
+
+        tr.className = superClass;
+        tr.innerHTML = `
+          <td>${row.symbol}</td>
+          <td><span class="close-price">${close.toFixed(6)}</span><span class="hl-info">(H-${high.toFixed(6)},L-${low.toFixed(6)})</span></td>
+          <td class="${s1.signalClass || 'ema-none'}">${s1.signal || '---'}</td>
+          <td class="${s3.signalClass || 'ema-none'}">${s3.signal || '---'}</td>
+          <td class="${s5.signalClass || 'ema-none'}">${s5.signal || '---'}</td>
+          <td class="${s15.signalClass || 'ema-none'}">${s15.signal || '---'}</td>
+          <td class="${s1h.signalClass || 'ema-none'}">${s1h.signal || '---'}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportToCSV() {
+      const rows = [...document.querySelectorAll("#radar-table tr")];
+      const csv = rows.map(row => [...row.querySelectorAll("td,th")].map(cell => cell.innerText).join(",")).join("\\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "soixios_snapshot.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function updateRefreshCounter() {
+      refreshCountdown--;
+      if (refreshCountdown <= 0) {
+        fetchAllIntervals();
+        refreshCountdown = refreshInterval;
+      }
+      document.getElementById("refresh-counter").textContent = `⏳ ${refreshCountdown}`;
+    }
+
+    setInterval(updateRefreshCounter, 1000);
+    fetchAllIntervals();
+  </script>
+</body>
+</html>
