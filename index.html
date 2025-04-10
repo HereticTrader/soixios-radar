@@ -18,21 +18,21 @@
     #refresh-counter { float: right; font-size: 1rem; color: yellow; }
     .close-price { font-weight: bold; font-size: 1.3rem; display: block; }
     .hl-info { color: gray; font-size: 0.7rem; }
-    .top-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .top-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
     .refresh-group { display: flex; align-items: center; }
     select, input[type="text"] {
       margin-left: 1rem; padding: 0.4rem; background: #111; color: white; border: 1px solid #555;
     }
     .export-btn { background: #222; color: white; border: 1px solid gray; padding: 0.3rem 0.8rem; margin-left: 1rem; }
-    .altcoin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
-    .chart-box { min-height: 300px; height: 300px; overflow: hidden; background-color: #111; border: 1px solid #333; }
+    .altcoin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3rem; margin-top: 1rem; }
+    .chart-box { height: 300px; background-color: #111; border: 1px solid #333; }
   </style>
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <h1>🚀 SOIXIOS Meme Coin Radar</h1>
 
-  <div style="margin-top: 2rem;">
+  <div style="margin-top: 1rem;">
     <label for="coinChart">Altcoin Symbol:</label>
     <input type="text" id="coinChart" value="ALCHUSDT" />
     <button onclick="loadAltCharts()">📈 Load Altcoin Charts</button>
@@ -78,34 +78,43 @@
 
   <script>
     function createLightweightChart(containerId, symbol, interval) {
-      const chart = LightweightCharts.createChart(document.getElementById(containerId), {
-        layout: {
-          background: { color: '#111' },
-          textColor: '#ddd'
-        },
-        grid: {
-          vertLines: { color: '#333' },
-          horLines: { color: '#333' }
-        },
-        width: document.getElementById(containerId).clientWidth,
-        height: 300
-      });
+      setTimeout(() => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
 
-      const candleSeries = chart.addCandlestickSeries();
-      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`;
-
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const formatted = data.map(d => ({
-            time: Math.floor(d[0] / 1000),
-            open: parseFloat(d[1]),
-            high: parseFloat(d[2]),
-            low: parseFloat(d[3]),
-            close: parseFloat(d[4])
-          }));
-          candleSeries.setData(formatted);
+        const chart = LightweightCharts.createChart(container, {
+          layout: {
+            background: { color: '#111' },
+            textColor: '#ddd'
+          },
+          grid: {
+            vertLines: { color: '#333' },
+            horLines: { color: '#333' }
+          },
+          width: container.clientWidth,
+          height: container.clientHeight
         });
+
+        const candleSeries = chart.addCandlestickSeries();
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`;
+
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            const formatted = data.map(d => ({
+              time: Math.floor(d[0] / 1000),
+              open: parseFloat(d[1]),
+              high: parseFloat(d[2]),
+              low: parseFloat(d[3]),
+              close: parseFloat(d[4])
+            }));
+            candleSeries.setData(formatted);
+          });
+
+        window.addEventListener('resize', () => {
+          chart.resize(container.clientWidth, container.clientHeight);
+        });
+      }, 100);
     }
 
     function loadAltCharts() {
