@@ -24,13 +24,13 @@
       margin-left: 1rem; padding: 0.4rem; background: #111; color: white; border: 1px solid #555;
     }
     .export-btn { background: #222; color: white; border: 1px solid gray; padding: 0.3rem 0.8rem; margin-left: 1rem; }
-    $1; align-items: start
-    $1; min-height: 200px; overflow: hidden
+    .altcoin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1rem; margin-bottom: 2rem; }
+    .chart-box { min-height: 200px; overflow: hidden; }
   </style>
   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Meme Coin Radar$1
+  <h1>🚀 SOIXIOS Meme Coin Radar</h1>
 
   <div style="margin-top: 2rem;">
     <label for="chartHeight">Chart Height:</label>
@@ -39,11 +39,13 @@
     <input type="text" id="coinChart" placeholder="e.g. ARCUSDT.P" />
     <button onclick="loadAltCharts()">📈 Load Altcoin Charts</button>
 
-    <div class="altcoin-grid">
-      <div id="tv_alt_1m" class="chart-box"></div>
-      <div id="tv_alt_5m" class="chart-box"></div>
-      <div id="tv_alt_15m" class="chart-box"></div>
-      <div id="tv_alt_1h" class="chart-box"></div>
+    <div id="altcoin-wrapper" style="margin-bottom: 3rem;">
+      <div class="altcoin-grid">
+        <div id="tv_alt_1m" class="chart-box"></div>
+        <div id="tv_alt_5m" class="chart-box"></div>
+        <div id="tv_alt_15m" class="chart-box"></div>
+        <div id="tv_alt_1h" class="chart-box"></div>
+      </div>
     </div>
   </div>
 
@@ -78,14 +80,8 @@
     <tbody></tbody>
   </table>
 
-  
-  </div>
-
-  <div style="margin-top: 2rem;">
+  <div style="margin-top: 3rem;">
     <div id="tv_btcusdt" class="chart-box"></div>
-  </div>
-
-  
   </div>
 
   <script type="text/javascript">
@@ -121,6 +117,9 @@
           createChart(ids[i], symbol, intervals[i], height);
         }
       }
+
+      // push table downward
+      document.getElementById("altcoin-wrapper").style.marginBottom = (height + 30) + "px";
     }
 
     function loadBTCChart() {
@@ -130,7 +129,10 @@
     }
 
     loadBTCChart();
-    document.getElementById("chartHeight").addEventListener("change", loadBTCChart);
+    document.getElementById("chartHeight").addEventListener("change", () => {
+      loadBTCChart();
+      loadAltCharts();
+    });
   </script>
 </body>
 </html>
