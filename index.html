@@ -78,43 +78,31 @@
 
   <script>
     function createLightweightChart(containerId, symbol, interval) {
-      setTimeout(() => {
-        const container = document.getElementById(containerId);
-        container.innerHTML = "";
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
 
-        const chart = LightweightCharts.createChart(container, {
-          layout: {
-            background: { color: '#111' },
-            textColor: '#ddd'
-          },
-          grid: {
-            vertLines: { color: '#333' },
-            horLines: { color: '#333' }
-          },
-          width: container.clientWidth,
-          height: container.clientHeight
+      const chart = LightweightCharts.createChart(container, {
+        layout: { background: { color: '#111' }, textColor: '#ddd' },
+        grid: { vertLines: { color: '#333' }, horLines: { color: '#333' } },
+        width: container.clientWidth,
+        height: container.clientHeight
+      });
+
+      const candleSeries = chart.addCandlestickSeries();
+      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const formatted = data.map(d => ({
+            time: Math.floor(d[0] / 1000),
+            open: parseFloat(d[1]),
+            high: parseFloat(d[2]),
+            low: parseFloat(d[3]),
+            close: parseFloat(d[4])
+          }));
+          candleSeries.setData(formatted);
         });
-
-        const candleSeries = chart.addCandlestickSeries();
-        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`;
-
-        fetch(url)
-          .then(res => res.json())
-          .then(data => {
-            const formatted = data.map(d => ({
-              time: Math.floor(d[0] / 1000),
-              open: parseFloat(d[1]),
-              high: parseFloat(d[2]),
-              low: parseFloat(d[3]),
-              close: parseFloat(d[4])
-            }));
-            candleSeries.setData(formatted);
-          });
-
-        window.addEventListener('resize', () => {
-          chart.resize(container.clientWidth, container.clientHeight);
-        });
-      }, 100);
     }
 
     function loadAltCharts() {
@@ -126,6 +114,7 @@
   </script>
 </body>
 </html>
+
 
 
 
