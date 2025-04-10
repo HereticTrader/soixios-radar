@@ -32,18 +32,6 @@
 <body>
   <h1>🚀 SOIXIOS Meme Coin Radar</h1>
 
-  <div class="chart-container">
-    <div id="tv_btcusdt" class="chart-box"></div>
-    <div style="flex: 1; padding-left: 1rem;">
-      <label for="coinChart">Altcoin Symbol:</label>
-      <input type="text" id="coinChart" placeholder="e.g. ARCUSDT.P" />
-      <label for="chartHeight">Chart Height:</label>
-      <input type="number" id="chartHeight" value="180" min="100" max="600" />
-      <button onclick="loadAltChart()">📈 Load Altcoin Chart</button>
-      <div id="tv_altcoin" class="chart-box" style="margin-top: 1rem;"></div>
-    </div>
-  </div>
-
   <div class="top-controls">
     <div class="refresh-group">
       <label>Refresh every:</label>
@@ -75,6 +63,21 @@
     <tbody></tbody>
   </table>
 
+  <div class="chart-container">
+    <div style="flex: 1; padding-right: 1rem;">
+      <label for="chartHeight">Chart Height:</label>
+      <input type="number" id="chartHeight" value="180" min="100" max="600" />
+      <br/><br/>
+      <div id="tv_btcusdt" class="chart-box"></div>
+    </div>
+    <div style="flex: 1; padding-left: 1rem;">
+      <label for="coinChart">Altcoin Symbol:</label>
+      <input type="text" id="coinChart" placeholder="e.g. ARCUSDT.P" />
+      <button onclick="loadAltChart()">📈 Load Altcoin Chart</button>
+      <div id="tv_altcoin" class="chart-box" style="margin-top: 1rem;"></div>
+    </div>
+  </div>
+
   <script type="text/javascript">
     function createChart(id, symbol, height) {
       new TradingView.widget({
@@ -104,11 +107,22 @@
       }
     }
 
-    createChart("tv_btcusdt", "BTCUSDT", 180);
+    function loadBTCChart() {
+      const height = parseInt(document.getElementById("chartHeight").value);
+      document.getElementById("tv_btcusdt").innerHTML = "";
+      createChart("tv_btcusdt", "BTCUSDT", height);
+    }
+
+    // Initial load with default height
+    loadBTCChart();
+
+    // Reload BTC chart when height input changes
+    document.getElementById("chartHeight").addEventListener("change", loadBTCChart);
   </script>
 </body>
 </html>
 
+///////////////////
 
   <script>
     let refreshCountdown = 5;
