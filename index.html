@@ -1,4 +1,25 @@
-<!DOCTYPE html>
+                this.lastPrice = price;
+                this.lastTradeTime = tradeTime;
+                this.ticks.push(tick);
+                
+                // Store ticks for time-based analysis
+                this.updateTickAnalysis(tick);
+                
+                if(direction > 0) this.upticks++;
+                else if(direction < 0) this.downticks++;
+                
+                // Track bot positional bias
+                this.updateBotPositionBias(tick);
+                
+                // Keep only last 100 ticks for performance
+                if(this.ticks.length > 100) {
+                    this.ticks.shift();
+                }
+                
+                this.analyzeBotActivity();
+                this.updateActivityHistory();
+                this.updateTickStrengthAnalysis();
+                this.updateUI();<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -179,6 +200,62 @@
                         <div class="metric-value" id="intensity">0%</div>
                         <div class="metric-label">INTENSITY</div>
                     </div>
+                    <div class="metric">
+                        <div class="metric-value" id="botTrend">--</div>
+                        <div class="metric-label">1MIN TREND</div>
+                    </div>
+                </div>
+                <canvas id="historyCanvas" style="width: 100%; height: 80px; background: #000; border: 1px solid #333; margin: 10px 0;"></canvas>
+            </div>
+        </div>
+
+        <div class="radar-panel">
+            <h3>📊 TICK STRENGTH BATTLE - LAST 1 MINUTE</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 15px 0;">
+                <div style="text-align: center; border: 2px solid #00ff00; padding: 15px; background: rgba(0,255,0,0.1);">
+                    <div style="font-size: 24px; color: #00ff00;" id="uptickCount1m">0</div>
+                    <div style="font-size: 12px;">UPTICKS</div>
+                    <div style="font-size: 16px; margin: 5px 0;" id="uptickAvgSize1m">0.0</div>
+                    <div style="font-size: 10px;">AVG SIZE</div>
+                </div>
+                
+                <div style="text-align: center; border: 2px solid #ffff00; padding: 15px; background: rgba(255,255,0,0.1);">
+                    <div style="font-size: 32px; color: #ffff00;" id="tickDelta">0</div>
+                    <div style="font-size: 12px;">DELTA</div>
+                    <div style="font-size: 16px; margin: 5px 0; color: #ffff00;" id="powerWinner">EVEN</div>
+                    <div style="font-size: 10px;">POWER WINNER</div>
+                </div>
+                
+                <div style="text-align: center; border: 2px solid #ff0000; padding: 15px; background: rgba(255,0,0,0.1);">
+                    <div style="font-size: 24px; color: #ff0000;" id="downtickCount1m">0</div>
+                    <div style="font-size: 12px;">DOWNTICKS</div>
+                    <div style="font-size: 16px; margin: 5px 0;" id="downtickAvgSize1m">0.0</div>
+                    <div style="font-size: 10px;">AVG SIZE</div>
+                </div>
+            </div>
+            
+            <div style="margin: 15px 0; padding: 10px; border: 1px solid #333; background: rgba(50,50,50,0.3);">
+                <div style="font-size: 14px; text-align: center;">
+                    <span style="color: #00ff00;">PATTERN: </span>
+                    <span id="patternDescription" style="color: #ffff00;">ANALYZING...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="radar-panel">
+            <h3>📈 5-MINUTE COMPARISON</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="border: 1px solid #333; padding: 10px;">
+                    <div style="color: #00ff00; font-size: 16px;">UPTICKS 5MIN</div>
+                    <div style="font-size: 20px;" id="uptickCount5m">0</div>
+                    <div style="font-size: 12px;">Avg Size: <span id="uptickAvgSize5m">0.0</span></div>
+                    <div style="font-size: 12px; color: #888;">Trend: <span id="uptickTrend5m">--</span></div>
+                </div>
+                <div style="border: 1px solid #333; padding: 10px;">
+                    <div style="color: #ff0000; font-size: 16px;">DOWNTICKS 5MIN</div>
+                    <div style="font-size: 20px;" id="downtickCount5m">0</div>
+                    <div style="font-size: 12px;">Avg Size: <span id="downtickAvgSize5m">0.0</span></div>
+                    <div style="font-size: 12px; color: #888;">Trend: <span id="downtickTrend5m">--</span></div>
                 </div>
             </div>
         </div>
@@ -223,6 +300,17 @@
                 this.radarAngle = 0;
                 this.tickBuffer = [];
                 this.lastTradeTime = 0;
+                this.activityHistory = []; // Store 1-minute history
+                this.botPositionBias = 0; // Track bot directional bias
+                this.historicalSamples = [];
+                this.uptickHistory = []; // Store uptick strength over time
+                this.downtickHistory = []; // Store downtick strength over time
+                this.tickAnalysis = {
+                    upticks1m: [],
+                    downticks1m: [],
+                    upticks5m: [],
+                    downticks5m: []
+                };
                 
                 this.initCanvases();
                 this.bindEvents();
@@ -243,6 +331,11 @@
                 this.reactionCtx = this.reactionCanvas.getContext('2d');
                 this.reactionCanvas.width = this.reactionCanvas.offsetWidth;
                 this.reactionCanvas.height = this.reactionCanvas.offsetHeight;
+
+                this.historyCanvas = document.getElementById('historyCanvas');
+                this.historyCtx = this.historyCanvas.getContext('2d');
+                this.historyCanvas.width = this.historyCanvas.offsetWidth;
+                this.historyCanvas.height = this.historyCanvas.offsetHeight;
             }
 
             bindEvents() {
@@ -360,12 +453,16 @@
                 if(direction > 0) this.upticks++;
                 else if(direction < 0) this.downticks++;
                 
+                // Track bot positional bias
+                this.updateBotPositionBias(tick);
+                
                 // Keep only last 100 ticks for performance
                 if(this.ticks.length > 100) {
                     this.ticks.shift();
                 }
                 
                 this.analyzeBotActivity();
+                this.updateActivityHistory();
                 this.updateUI();
             }
 
@@ -545,6 +642,204 @@
                 }
             }
 
+            updateBotPositionBias(tick) {
+                // Analyze bot directional preference based on response patterns
+                if(tick.type === 'bot_response') {
+                    // If bots are responding with buys to sells (or vice versa), they're defending a position
+                    if(tick.direction > 0) {
+                        this.botPositionBias += 0.1; // Bots are supporting (likely long)
+                    } else {
+                        this.botPositionBias -= 0.1; // Bots are suppressing (likely short)
+                    }
+                    
+                    // Keep bias in reasonable range
+                    this.botPositionBias = Math.max(-2, Math.min(2, this.botPositionBias));
+                }
+                
+                // Decay bias over time
+                this.botPositionBias *= 0.995;
+            }
+
+            updateActivityHistory() {
+                const now = Date.now();
+                
+                // Add current activity level to history
+                this.activityHistory.push({
+                    timestamp: now,
+                    activity: this.botActivity,
+                    bias: this.botPositionBias
+                });
+                
+                // Keep only last 60 seconds of data
+                this.activityHistory = this.activityHistory.filter(item => 
+                    now - item.timestamp < 60000
+                );
+                
+                // Calculate trend
+                if(this.activityHistory.length > 10) {
+                    const recent = this.activityHistory.slice(-10);
+                    const older = this.activityHistory.slice(-20, -10);
+                    
+                    if(older.length > 0) {
+                        const recentAvg = recent.reduce((sum, item) => sum + item.activity, 0) / recent.length;
+                        const olderAvg = older.reduce((sum, item) => sum + item.activity, 0) / older.length;
+                        
+                        const trend = recentAvg - olderAvg;
+                        
+                        if(trend > 5) {
+                            document.getElementById('botTrend').textContent = '📈 RISING';
+                            document.getElementById('botTrend').style.color = '#ff0000';
+                        } else if(trend < -5) {
+                            document.getElementById('botTrend').textContent = '📉 FALLING';
+                            document.getElementById('botTrend').style.color = '#00ff00';
+                        } else {
+                            document.getElementById('botTrend').textContent = '➡️ STABLE';
+                            document.getElementById('botTrend').style.color = '#ffff00';
+                        }
+                    }
+                }
+                
+                this.updateBotWarning();
+            }
+
+            updateTickAnalysis(tick) {
+                const now = Date.now();
+                
+                // Add to appropriate arrays with timestamp
+                const tickData = {
+                    ...tick,
+                    timestamp: now
+                };
+                
+                if(tick.direction > 0) {
+                    this.tickAnalysis.upticks1m.push(tickData);
+                    this.tickAnalysis.upticks5m.push(tickData);
+                } else if(tick.direction < 0) {
+                    this.tickAnalysis.downticks1m.push(tickData);
+                    this.tickAnalysis.downticks5m.push(tickData);
+                }
+                
+                // Clean old data
+                this.tickAnalysis.upticks1m = this.tickAnalysis.upticks1m.filter(t => now - t.timestamp < 60000);
+                this.tickAnalysis.downticks1m = this.tickAnalysis.downticks1m.filter(t => now - t.timestamp < 60000);
+                this.tickAnalysis.upticks5m = this.tickAnalysis.upticks5m.filter(t => now - t.timestamp < 300000);
+                this.tickAnalysis.downticks5m = this.tickAnalysis.downticks5m.filter(t => now - t.timestamp < 300000);
+            }
+
+            updateTickStrengthAnalysis() {
+                // 1-minute analysis
+                const upticks1m = this.tickAnalysis.upticks1m;
+                const downticks1m = this.tickAnalysis.downticks1m;
+                
+                const uptickCount1m = upticks1m.length;
+                const downtickCount1m = downticks1m.length;
+                const delta = uptickCount1m - downtickCount1m;
+                
+                // Calculate average sizes
+                const uptickAvgSize1m = upticks1m.length > 0 ? 
+                    (upticks1m.reduce((sum, t) => sum + t.size, 0) / upticks1m.length).toFixed(3) : '0.000';
+                const downtickAvgSize1m = downticks1m.length > 0 ? 
+                    (downticks1m.reduce((sum, t) => sum + t.size, 0) / downticks1m.length).toFixed(3) : '0.000';
+                
+                // Update 1-minute display
+                document.getElementById('uptickCount1m').textContent = uptickCount1m;
+                document.getElementById('downtickCount1m').textContent = downtickCount1m;
+                document.getElementById('uptickAvgSize1m').textContent = uptickAvgSize1m;
+                document.getElementById('downtickAvgSize1m').textContent = downtickAvgSize1m;
+                
+                // Delta display
+                const deltaElement = document.getElementById('tickDelta');
+                deltaElement.textContent = delta > 0 ? `+${delta}` : delta.toString();
+                deltaElement.style.color = delta > 0 ? '#00ff00' : delta < 0 ? '#ff0000' : '#ffff00';
+                
+                // Power winner
+                const powerWinner = document.getElementById('powerWinner');
+                const uptickPower = parseFloat(uptickAvgSize1m);
+                const downtickPower = parseFloat(downtickAvgSize1m);
+                
+                if(uptickPower > downtickPower * 1.2) {
+                    powerWinner.textContent = 'UPTICKS';
+                    powerWinner.style.color = '#00ff00';
+                } else if(downtickPower > uptickPower * 1.2) {
+                    powerWinner.textContent = 'DOWNTICKS';
+                    powerWinner.style.color = '#ff0000';
+                } else {
+                    powerWinner.textContent = 'EVEN';
+                    powerWinner.style.color = '#ffff00';
+                }
+                
+                // 5-minute analysis
+                const upticks5m = this.tickAnalysis.upticks5m;
+                const downticks5m = this.tickAnalysis.downticks5m;
+                
+                document.getElementById('uptickCount5m').textContent = upticks5m.length;
+                document.getElementById('downtickCount5m').textContent = downticks5m.length;
+                
+                const uptickAvgSize5m = upticks5m.length > 0 ? 
+                    (upticks5m.reduce((sum, t) => sum + t.size, 0) / upticks5m.length).toFixed(3) : '0.000';
+                const downtickAvgSize5m = downticks5m.length > 0 ? 
+                    (downticks5m.reduce((sum, t) => sum + t.size, 0) / downticks5m.length).toFixed(3) : '0.000';
+                
+                document.getElementById('uptickAvgSize5m').textContent = uptickAvgSize5m;
+                document.getElementById('downtickAvgSize5m').textContent = downtickAvgSize5m;
+                
+                // Pattern description
+                this.updatePatternDescription(uptickCount1m, downtickCount1m, uptickPower, downtickPower, delta);
+            }
+
+            updatePatternDescription(uptickCount, downtickCount, uptickPower, downtickPower, delta) {
+                const pattern = document.getElementById('patternDescription');
+                let description = '';
+                
+                if(Math.abs(delta) <= 2) {
+                    description = 'BALANCED FIGHT - Equal pressure both sides';
+                } else if(delta > 0) {
+                    if(downtickPower > uptickPower * 1.3) {
+                        description = 'MORE BUYS BUT SELLS ARE STRONGER - Weak buying pressure';
+                    } else {
+                        description = 'BUYING PRESSURE DOMINATES - Bulls in control';
+                    }
+                } else {
+                    if(uptickPower > downtickPower * 1.3) {
+                        description = 'MORE SELLS BUT BUYS ARE STRONGER - Strong support';
+                    } else {
+                        description = 'SELLING PRESSURE DOMINATES - Bears in control';
+                    }
+                }
+                
+                // Add bot context
+                if(this.botActivity > 60) {
+                    description += ' | ⚠️ BOTS ACTIVE';
+                } else if(this.botActivity > 30) {
+                    description += ' | 👀 BOTS WATCHING';
+                }
+                
+                pattern.textContent = description;
+            }
+
+            updateBotWarning() {
+                const warningDiv = document.getElementById('botWarning');
+                const warningText = document.getElementById('warningText');
+                
+                if(this.botActivity > 40 && Math.abs(this.botPositionBias) > 0.3) {
+                    warningDiv.style.display = 'block';
+                    
+                    if(this.botPositionBias > 0.3) {
+                        warningText.textContent = '🚨 DO NOT TRADE AGAINST LONG - BOTS ARE SUPPORTING UPSIDE';
+                        warningDiv.style.borderColor = '#00ff00';
+                        warningDiv.style.color = '#00ff00';
+                        warningDiv.style.background = 'rgba(0, 255, 0, 0.2)';
+                    } else if(this.botPositionBias < -0.3) {
+                        warningText.textContent = '🚨 DO NOT TRADE AGAINST SHORT - BOTS ARE SUPPRESSING UPSIDE';
+                        warningDiv.style.borderColor = '#ff0000';
+                        warningDiv.style.color = '#ff0000';
+                        warningDiv.style.background = 'rgba(255, 0, 0, 0.2)';
+                    }
+                } else {
+                    warningDiv.style.display = 'none';
+                }
+            }
+
             updateUI() {
                 document.getElementById('upticks').textContent = this.upticks;
                 document.getElementById('downticks').textContent = this.downticks;
@@ -703,6 +998,63 @@
                 });
             }
 
+            drawActivityHistory() {
+                const ctx = this.historyCtx;
+                const canvas = this.historyCanvas;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                if(this.activityHistory.length < 2) return;
+                
+                const maxActivity = 100;
+                const xStep = canvas.width / 60; // 60 seconds
+                const now = Date.now();
+                
+                // Draw grid lines
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                for(let i = 0; i <= 4; i++) {
+                    const y = (i / 4) * canvas.height;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                // Draw activity line
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                this.activityHistory.forEach((item, i) => {
+                    const ageSeconds = (now - item.timestamp) / 1000;
+                    const x = canvas.width - (ageSeconds * xStep);
+                    const y = canvas.height - ((item.activity / maxActivity) * canvas.height);
+                    
+                    if(i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    // Color code based on trend
+                    if(item.activity > 60) {
+                        ctx.fillStyle = '#ff0000';
+                        ctx.fillRect(x - 1, y - 1, 2, 2);
+                    } else if(item.activity > 30) {
+                        ctx.fillStyle = '#ffff00';
+                        ctx.fillRect(x - 1, y - 1, 2, 2);
+                    }
+                });
+                
+                ctx.stroke();
+                
+                // Draw current level indicator
+                const currentY = canvas.height - ((this.botActivity / maxActivity) * canvas.height);
+                ctx.fillStyle = this.botActivity > 60 ? '#ff0000' : this.botActivity > 30 ? '#ffff00' : '#00ff00';
+                ctx.fillRect(canvas.width - 5, currentY - 2, 5, 4);
+            }
+
             tick() {
                 if(!this.isRunning) return;
                 
@@ -714,6 +1066,7 @@
                 this.drawTickStream();
                 this.drawRadar();
                 this.drawReactionPattern();
+                this.drawActivityHistory();
                 
                 setTimeout(() => this.tick(), this.isConnected ? 100 : 500);
             }
