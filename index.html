@@ -1,4 +1,4 @@
-                this.lastPrice = price;
+this.lastPrice = price;
                 this.lastTradeTime = tradeTime;
                 this.ticks.push(tick);
                 
@@ -185,8 +185,43 @@
             </div>
 
             <div class="radar-panel">
-                <h3>BOT ACTIVITY RADAR</h3>
-                <canvas id="radarCanvas" class="radar-screen"></canvas>
+                <h3>🤖 BOT SIDE DETECTOR</h3>
+                <div style="position: relative; height: 250px; background: #000; border: 2px solid #333; margin: 10px 0;">
+                    <!-- Bot Battle Arena -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; border: 1px solid #666;">
+                        
+                        <!-- LEFT SIDE - BEARS/SHORTS -->
+                        <div id="bearSide" style="position: absolute; left: 0; top: 0; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,0,0,0.1), transparent); border-right: 1px solid #666; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <div style="color: #ff0000; font-size: 24px; margin-bottom: 10px;">🐻 BEARS</div>
+                            <div id="bearPower" style="color: #ff0000; font-size: 18px; font-weight: bold;">0%</div>
+                            <div style="color: #ff6666; font-size: 12px;">BOT SHORTS</div>
+                        </div>
+                        
+                        <!-- RIGHT SIDE - BULLS/LONGS -->
+                        <div id="bullSide" style="position: absolute; right: 0; top: 0; width: 50%; height: 100%; background: linear-gradient(to left, rgba(0,255,0,0.1), transparent); display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <div style="color: #00ff00; font-size: 24px; margin-bottom: 10px;">🐂 BULLS</div>
+                            <div id="bullPower" style="color: #00ff00; font-size: 18px; font-weight: bold;">0%</div>
+                            <div style="color: #66ff66; font-size: 12px;">BOT LONGS</div>
+                        </div>
+                        
+                        <!-- CENTER BATTLE LINE -->
+                        <div id="battleLine" style="position: absolute; left: 50%; top: 0; width: 3px; height: 100%; background: #ffff00; transform: translateX(-50%); transition: all 0.3s ease;"></div>
+                        
+                        <!-- BOT ACTIVITY INDICATOR -->
+                        <div id="botIndicator" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 5px 10px; border: 1px solid #666; border-radius: 3px;">
+                            <span style="color: #ffff00; font-size: 12px;">BOT ACTIVITY: </span>
+                            <span id="botActivityLevel" style="color: #fff; font-size: 12px; font-weight: bold;">DORMANT</span>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Control Buttons -->
+                    <div style="position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between;">
+                        <div style="color: #888; font-size: 10px;">INTENSITY: <span id="currentIntensity">0%</span></div>
+                        <div style="color: #888; font-size: 10px;">BIAS: <span id="currentBias">NEUTRAL</span></div>
+                    </div>
+                </div>
+                
                 <div class="metrics">
                     <div class="metric">
                         <div class="metric-value" id="botStatus">DORMANT</div>
@@ -286,6 +321,8 @@
     <script>
         class AlgoRadar {
             constructor() {
+                console.log("Starting AlgoRadar initialization...");
+                
                 this.isRunning = false;
                 this.isConnected = false;
                 this.ws = null;
@@ -312,8 +349,21 @@
                     downticks5m: []
                 };
                 
+                // Wait for DOM to be ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        this.initialize();
+                    });
+                } else {
+                    this.initialize();
+                }
+            }
+
+            initialize() {
+                console.log("Initializing canvases and events...");
                 this.initCanvases();
                 this.bindEvents();
+                console.log("AlgoRadar initialized successfully!");
             }
 
             initCanvases() {
@@ -339,11 +389,18 @@
             }
 
             bindEvents() {
-                document.getElementById('connectBtn').onclick = () => this.connectBinance();
-                document.getElementById('disconnectBtn').onclick = () => this.disconnect();
-                document.getElementById('simulateBtn').onclick = () => this.simulateMarket();
+                console.log("Binding events...");
                 
-                // Start radar automatically when connected
+                const connectBtn = document.getElementById('connectBtn');
+                const disconnectBtn = document.getElementById('disconnectBtn');
+                const simulateBtn = document.getElementById('simulateBtn');
+                
+                if(connectBtn) connectBtn.onclick = () => this.connectBinance();
+                if(disconnectBtn) disconnectBtn.onclick = () => this.disconnect();
+                if(simulateBtn) simulateBtn.onclick = () => this.simulateMarket();
+                
+                console.log("Events bound, starting radar...");
+                // Start radar automatically when page loads
                 this.startRadar();
             }
 
@@ -506,6 +563,12 @@
                 this.downticks = 0;
                 this.ticks = [];
                 this.botActivity = 0;
+                this.tickAnalysis = {
+                    upticks1m: [],
+                    downticks1m: [],
+                    upticks5m: [],
+                    downticks5m: []
+                };
             }
 
             start() {
@@ -523,12 +586,39 @@
             }
 
             simulateMarket() {
+                console.log("Starting market simulation...");
+                
+                if(!this.isRunning) {
+                    console.log("Radar not running, starting it first...");
+                    this.startRadar();
+                }
+                
+                // Reset data for clean simulation
+                this.ticks = [];
+                this.upticks = 0;
+                this.downticks = 0;
+                this.botActivity = 0;
+                
                 // Simulate normal retail trading
+                console.log("Generating 20 retail trades...");
                 for(let i = 0; i < 20; i++) {
                     setTimeout(() => {
+                        console.log(`Generating retail tick ${i+1}/20`);
                         this.generateTick('retail');
-                    }, i * 100);
+                    }, i * 200);
                 }
+                
+                // Add some bot responses after a delay
+                setTimeout(() => {
+                    console.log("Generating whale activity...");
+                    this.generateTick('whale');
+                    setTimeout(() => {
+                        console.log("Generating bot response...");
+                        this.generateTick('bot_response');
+                    }, 100);
+                }, 4000);
+                
+                console.log("Market simulation started!");
             }
 
             triggerWhaleAlert() {
@@ -562,15 +652,22 @@
                         break;
                 }
 
+                const now = Date.now(); // Use current time for simulated ticks
                 const tick = {
-                    timestamp: Date.now(),
+                    timestamp: now,
                     direction,
                     size,
                     price: this.lastPrice + (direction * size),
-                    type
+                    type,
+                    timeDiff: this.lastTradeTime > 0 ? now - this.lastTradeTime : 0
                 };
 
                 this.lastPrice = tick.price;
+                this.lastTradeTime = now;
+                
+                // Store ticks for time-based analysis
+                this.updateTickAnalysis(tick);
+                
                 this.ticks.push(tick);
                 
                 if(direction > 0) this.upticks++;
@@ -582,6 +679,8 @@
                 }
 
                 this.analyzeBotActivity();
+                this.updateActivityHistory();
+                this.updateTickStrengthAnalysis();
                 this.updateUI();
             }
 
@@ -639,6 +738,93 @@
                 
                 if(avgTimeDiff > 0) {
                     document.getElementById('responseTime').textContent = Math.round(avgTimeDiff) + 'ms';
+                }
+                
+                // Update bot side detector
+                this.updateBotSideDetector();
+            }
+
+            updateBotSideDetector() {
+                const bearSide = document.getElementById('bearSide');
+                const bullSide = document.getElementById('bullSide');
+                const battleLine = document.getElementById('battleLine');
+                const bearPower = document.getElementById('bearPower');
+                const bullPower = document.getElementById('bullPower');
+                const botActivityLevel = document.getElementById('botActivityLevel');
+                const currentIntensity = document.getElementById('currentIntensity');
+                const currentBias = document.getElementById('currentBias');
+                
+                // Calculate bot side preference
+                const bias = this.botPositionBias;
+                const activity = this.botActivity;
+                
+                // Update activity level
+                if(activity < 20) {
+                    botActivityLevel.textContent = 'DORMANT';
+                    botActivityLevel.style.color = '#666';
+                } else if(activity < 60) {
+                    botActivityLevel.textContent = 'WATCHING';
+                    botActivityLevel.style.color = '#ffff00';
+                } else {
+                    botActivityLevel.textContent = 'ACTIVE';
+                    botActivityLevel.style.color = '#ff0000';
+                }
+                
+                // Calculate power distribution
+                let bearStrength = 50;
+                let bullStrength = 50;
+                
+                if(Math.abs(bias) > 0.1) {
+                    if(bias < 0) {
+                        // Bots are bearish (suppressing price)
+                        bearStrength = Math.min(90, 50 + Math.abs(bias) * 25);
+                        bullStrength = 100 - bearStrength;
+                    } else {
+                        // Bots are bullish (supporting price)
+                        bullStrength = Math.min(90, 50 + bias * 25);
+                        bearStrength = 100 - bullStrength;
+                    }
+                }
+                
+                // Update power displays
+                bearPower.textContent = Math.round(bearStrength) + '%';
+                bullPower.textContent = Math.round(bullStrength) + '%';
+                
+                // Update visual intensity based on bot activity
+                const bearOpacity = (activity / 100) * (bearStrength / 100);
+                const bullOpacity = (activity / 100) * (bullStrength / 100);
+                
+                bearSide.style.background = `linear-gradient(to right, rgba(255,0,0,${bearOpacity}), transparent)`;
+                bullSide.style.background = `linear-gradient(to left, rgba(0,255,0,${bullOpacity}), transparent)`;
+                
+                // Move battle line based on bias
+                const linePosition = 50 + (bias * 20); // -2 to +2 bias = 10% to 90% position
+                battleLine.style.left = Math.max(10, Math.min(90, linePosition)) + '%';
+                
+                // Update battle line color based on activity
+                if(activity > 60) {
+                    battleLine.style.background = '#ff0000';
+                    battleLine.style.boxShadow = '0 0 10px #ff0000';
+                } else if(activity > 30) {
+                    battleLine.style.background = '#ffff00';
+                    battleLine.style.boxShadow = '0 0 5px #ffff00';
+                } else {
+                    battleLine.style.background = '#666';
+                    battleLine.style.boxShadow = 'none';
+                }
+                
+                // Update bottom display
+                currentIntensity.textContent = Math.round(activity) + '%';
+                
+                if(Math.abs(bias) < 0.1) {
+                    currentBias.textContent = 'NEUTRAL';
+                    currentBias.style.color = '#ffff00';
+                } else if(bias < -0.1) {
+                    currentBias.textContent = 'BEARISH';
+                    currentBias.style.color = '#ff0000';
+                } else {
+                    currentBias.textContent = 'BULLISH';
+                    currentBias.style.color = '#00ff00';
                 }
             }
 
@@ -703,7 +889,7 @@
             }
 
             updateTickAnalysis(tick) {
-                const now = Date.now();
+                const now = tick.timestamp; // Use the actual trade timestamp from Binance
                 
                 // Add to appropriate arrays with timestamp
                 const tickData = {
@@ -719,11 +905,18 @@
                     this.tickAnalysis.downticks5m.push(tickData);
                 }
                 
-                // Clean old data
-                this.tickAnalysis.upticks1m = this.tickAnalysis.upticks1m.filter(t => now - t.timestamp < 60000);
-                this.tickAnalysis.downticks1m = this.tickAnalysis.downticks1m.filter(t => now - t.timestamp < 60000);
-                this.tickAnalysis.upticks5m = this.tickAnalysis.upticks5m.filter(t => now - t.timestamp < 300000);
-                this.tickAnalysis.downticks5m = this.tickAnalysis.downticks5m.filter(t => now - t.timestamp < 300000);
+                // Clean old data - 1 minute = 60000ms, 5 minutes = 300000ms
+                const oneMinuteAgo = now - 60000;
+                const fiveMinutesAgo = now - 300000;
+                
+                this.tickAnalysis.upticks1m = this.tickAnalysis.upticks1m.filter(t => t.timestamp > oneMinuteAgo);
+                this.tickAnalysis.downticks1m = this.tickAnalysis.downticks1m.filter(t => t.timestamp > oneMinuteAgo);
+                this.tickAnalysis.upticks5m = this.tickAnalysis.upticks5m.filter(t => t.timestamp > fiveMinutesAgo);
+                this.tickAnalysis.downticks5m = this.tickAnalysis.downticks5m.filter(t => t.timestamp > fiveMinutesAgo);
+                
+                // Debug info
+                console.log(`1min: ${this.tickAnalysis.upticks1m.length} up, ${this.tickAnalysis.downticks1m.length} down`);
+                console.log(`5min: ${this.tickAnalysis.upticks5m.length} up, ${this.tickAnalysis.downticks5m.length} down`);
             }
 
             updateTickStrengthAnalysis() {
@@ -871,6 +1064,8 @@
             }
 
             drawTickStream() {
+                if(!this.tickCtx || !this.tickCanvas) return;
+                
                 const ctx = this.tickCtx;
                 const canvas = this.tickCanvas;
                 
@@ -914,63 +1109,12 @@
             }
 
             drawRadar() {
-                const ctx = this.radarCtx;
-                const canvas = this.radarCanvas;
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const radius = Math.min(centerX, centerY) - 20;
-                
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw radar circles
-                ctx.strokeStyle = '#003300';
-                ctx.lineWidth = 1;
-                for(let r = radius / 4; r <= radius; r += radius / 4) {
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-                
-                // Draw radar lines
-                for(let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-                    ctx.beginPath();
-                    ctx.moveTo(centerX, centerY);
-                    ctx.lineTo(
-                        centerX + Math.cos(angle) * radius,
-                        centerY + Math.sin(angle) * radius
-                    );
-                    ctx.stroke();
-                }
-                
-                // Draw sweeping radar line
-                this.radarAngle += 0.02;
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.lineTo(
-                    centerX + Math.cos(this.radarAngle) * radius,
-                    centerY + Math.sin(this.radarAngle) * radius
-                );
-                ctx.stroke();
-                
-                // Draw bot activity blips
-                if(this.botActivity > 20) {
-                    const blipRadius = (this.botActivity / 100) * radius;
-                    const blipAngle = this.radarAngle + Math.random() * 0.5 - 0.25;
-                    
-                    ctx.fillStyle = this.botActivity > 60 ? '#ff0000' : '#ffff00';
-                    ctx.beginPath();
-                    ctx.arc(
-                        centerX + Math.cos(blipAngle) * blipRadius,
-                        centerY + Math.sin(blipAngle) * blipRadius,
-                        3, 0, Math.PI * 2
-                    );
-                    ctx.fill();
-                }
+                // Removed - replaced with bot side detector
             }
 
             drawReactionPattern() {
+                if(!this.reactionCtx || !this.reactionCanvas) return;
+                
                 const ctx = this.reactionCtx;
                 const canvas = this.reactionCanvas;
                 
@@ -999,6 +1143,8 @@
             }
 
             drawActivityHistory() {
+                if(!this.historyCtx || !this.historyCanvas) return;
+                
                 const ctx = this.historyCtx;
                 const canvas = this.historyCanvas;
                 
@@ -1064,7 +1210,6 @@
                 }
                 
                 this.drawTickStream();
-                this.drawRadar();
                 this.drawReactionPattern();
                 this.drawActivityHistory();
                 
