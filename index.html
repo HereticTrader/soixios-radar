@@ -1,4 +1,99 @@
-<!DOCTYPE html>
+initAudio() {
+                try {
+                    // Create audio context
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log("🔊 Audio system initialized");
+                } catch(error) {
+                    console.warn("❌ Audio not supported:", error);
+                    this.audioContext = null;
+                }
+            }
+            
+            playSound(frequency, duration = 100, type = 'sine') {
+                if(!this.audioEnabled || !this.audioContext || this.volume === 0) return;
+                
+                try {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+                    oscillator.type = type;
+                    
+                    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(this.volume * 0.1, this.audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration / 1000);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + duration / 1000);
+                } catch(error) {
+                    console.warn("Sound play error:", error);
+                }
+            }
+            
+            playTickSound(direction, size, isBot = false) {
+                if(!this.audioEnabled) return;
+                
+                if(isBot) {
+                    // Bot sounds - robotic/digital
+                    const freq = direction > 0 ? 800 : 400;
+                    this.playSound(freq, 50, 'square');
+                    setTimeout(() => this.playSound(freq * 1.5, 30, 'square'), 60);
+                } else {
+                    // Regular tick sounds
+                    const baseFreq = direction > 0 ? 600 : 300;
+                    const volume = Math.min(1, size / 10); // Size affects volume
+                    const freq = baseFreq + (size * 50); // Size affects pitch
+                    
+                    this.playSound(freq, 80, 'sine');
+                }
+            }
+            
+            playWarningSound() {
+                if(!this.audioEnabled) return;
+                
+                // Alert siren
+                for(let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        this.playSound(1000, 200, 'sawtooth');
+                        setTimeout(() => this.playSound(1500, 200, 'sawtooth'), 220);
+                    }, i * 500);
+                }
+            }
+            
+            playBotActivitySound(intensity) {
+                if(!this.audioEnabled || intensity < 30) return;
+                
+                // Continuous background hum that increases with bot activity
+                const freq = 150 + (intensity * 2);
+                const duration = 200;
+                
+                this.playSound(freq, duration, 'triangle');
+            }            updateTimeframe() {
+                this.timeframeSeconds = parseInt(document.getElementById('timeframeSelect').value);
+                
+                // Update the label
+                const label = document.getElementById('timeframeLabel');
+                if(this.timeframeSeconds < 60) {
+                    label.textContent = `LAST ${this.timeframeSeconds} SECONDS`;
+                } else if(this.timeframeSeconds < 3600) {
+                    const minutes = this.timeframeSeconds / 60;
+                    label.textContent = `LAST ${minutes} MINUTE${minutes > 1 ? 'S' : ''}`;
+                } else {
+                    const hours = this.timeframeSeconds / 3600;
+                    label.textContent = `LAST ${hours} HOUR${hours > 1 ? 'S' : ''}`;
+                }
+                
+                // Clear old data when timeframe changes
+                this.upticks = [];
+                this.downticks = [];
+                this.botActivity = 0;
+                this.botBias = 0;
+                
+                console.log(`⏱️ Timeframe changed to ${this.timeframeSeconds} seconds`);
+            }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -129,13 +224,24 @@
             <button id="connectBtn">CONNECT BINANCE</button>
             <button id="disconnectBtn">DISCONNECT</button>
             <button id="simulateBtn">SIMULATE MODE</button>
+            <select id="timeframeSelect">
+                <option value="30">30 Seconds</option>
+                <option value="60" selected>1 Minute</option>
+                <option value="120">2 Minutes</option>
+                <option value="300">5 Minutes</option>
+                <option value="600">10 Minutes</option>
+                <option value="900">15 Minutes</option>
+                <option value="1800">30 Minutes</option>
+            </select>
+            <button id="audioToggle" style="background: #330000;">🔇 AUDIO OFF</button>
+            <input type="range" id="volumeSlider" min="0" max="100" value="50" style="width: 80px;">
             <div id="status" style="color: #ff0000; margin-left: 10px;">DISCONNECTED</div>
         </div>
 
         <div class="grid">
             <!-- TICK STRENGTH BATTLE -->
             <div class="panel">
-                <h3>📊 TICK STRENGTH BATTLE - LAST 1 MINUTE</h3>
+                <h3>📊 TICK STRENGTH BATTLE - <span id="timeframeLabel">LAST 1 MINUTE</span></h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                     <div class="metric-box" style="border-color: #00ff00; background: rgba(0,255,0,0.1);">
                         <div class="metric-value" style="color: #00ff00;" id="uptickCount">0</div>
@@ -222,14 +328,23 @@
                 this.isRunning = false;
                 this.ws = null;
                 this.symbol = 'BTCUSDT';
+                this.timeframeSeconds = 60; // Default 1 minute
+                
+                // Audio properties
+                this.audioEnabled = false;
+                this.audioContext = null;
+                this.volume = 0.5;
                 
                 // Data storage
-                this.upticks1m = [];
-                this.downticks1m = [];
+                this.upticks = [];
+                this.downticks = [];
                 this.botActivity = 0;
                 this.botBias = 0;
                 this.lastPrice = 50000;
                 this.lastTime = 0;
+                
+                // Initialize audio
+                this.initAudio();
                 
                 // Bind events
                 this.bindEvents();
@@ -244,6 +359,39 @@
                 document.getElementById('connectBtn').onclick = () => this.connectBinance();
                 document.getElementById('disconnectBtn').onclick = () => this.disconnect();
                 document.getElementById('simulateBtn').onclick = () => this.simulate();
+                document.getElementById('timeframeSelect').onchange = () => this.updateTimeframe();
+                document.getElementById('audioToggle').onclick = () => this.toggleAudio();
+                document.getElementById('volumeSlider').oninput = (e) => this.updateVolume(e.target.value);
+                
+                // Initialize timeframe
+                this.updateTimeframe();
+            }
+            
+            toggleAudio() {
+                this.audioEnabled = !this.audioEnabled;
+                const button = document.getElementById('audioToggle');
+                
+                if(this.audioEnabled) {
+                    // Resume audio context if suspended
+                    if(this.audioContext && this.audioContext.state === 'suspended') {
+                        this.audioContext.resume();
+                    }
+                    button.textContent = '🔊 AUDIO ON';
+                    button.style.background = '#003300';
+                    console.log("🔊 Audio enabled");
+                    
+                    // Test sound
+                    setTimeout(() => this.playSound(440, 100), 100);
+                } else {
+                    button.textContent = '🔇 AUDIO OFF';
+                    button.style.background = '#330000';
+                    console.log("🔇 Audio disabled");
+                }
+            }
+            
+            updateVolume(value) {
+                this.volume = value / 100;
+                console.log(`🔊 Volume: ${Math.round(this.volume * 100)}%`);
             }
             
             start() {
@@ -256,16 +404,21 @@
                 console.log("🎮 Starting simulation...");
                 
                 // Clear existing data
-                this.upticks1m = [];
-                this.downticks1m = [];
+                this.upticks = [];
+                this.downticks = [];
                 this.botActivity = 0;
                 this.botBias = 0;
                 
-                // Generate 30 simulated trades
-                for(let i = 0; i < 30; i++) {
+                // Generate more trades for longer timeframes
+                const tradeCount = Math.max(20, Math.min(100, this.timeframeSeconds / 2));
+                const intervalMs = (this.timeframeSeconds * 1000) / tradeCount; // Spread trades across timeframe
+                
+                console.log(`Generating ${tradeCount} trades over ${this.timeframeSeconds}s (${intervalMs}ms intervals)`);
+                
+                for(let i = 0; i < tradeCount; i++) {
                     setTimeout(() => {
                         this.generateTrade();
-                    }, i * 300);
+                    }, i * intervalMs);
                 }
                 
                 console.log("✅ Simulation started!");
@@ -291,20 +444,22 @@
                 
                 // Store in appropriate array
                 if(direction > 0) {
-                    this.upticks1m.push(trade);
+                    this.upticks.push(trade);
                 } else {
-                    this.downticks1m.push(trade);
+                    this.downticks.push(trade);
                 }
                 
-                // Clean old data (older than 1 minute)
-                const oneMinuteAgo = now - 60000;
-                this.upticks1m = this.upticks1m.filter(t => t.timestamp > oneMinuteAgo);
-                this.downticks1m = this.downticks1m.filter(t => t.timestamp > oneMinuteAgo);
+                // Clean old data based on selected timeframe
+                const cutoffTime = now - (this.timeframeSeconds * 1000);
+                this.upticks = this.upticks.filter(t => t.timestamp > cutoffTime);
+                this.downticks = this.downticks.filter(t => t.timestamp > cutoffTime);
                 
                 // Simulate bot activity
+                let isBot = false;
                 if(Math.random() < 0.3) { // 30% chance of bot response
                     this.botActivity = Math.min(100, this.botActivity + 20);
                     this.botBias += direction * 0.1;
+                    isBot = true;
                 } else {
                     this.botActivity = Math.max(0, this.botActivity - 5);
                 }
@@ -312,7 +467,10 @@
                 // Keep bias in range
                 this.botBias = Math.max(-2, Math.min(2, this.botBias * 0.95));
                 
-                console.log(`📈 Trade: ${direction > 0 ? 'UP' : 'DOWN'} ${size.toFixed(3)} at ${price.toFixed(2)}`);
+                // Play tick sound
+                this.playTickSound(direction, size, isBot);
+                
+                console.log(`📈 Trade: ${direction > 0 ? 'UP' : 'DOWN'} ${size.toFixed(3)} at ${price.toFixed(2)} ${isBot ? '🤖' : ''}`);
                 
                 this.updateDisplay();
             }
@@ -352,8 +510,8 @@
                         console.log(`✅ Connected to ${this.symbol} via endpoint ${index + 1}`);
                         
                         // Clear old data on new connection
-                        this.upticks1m = [];
-                        this.downticks1m = [];
+                        this.upticks = [];
+                        this.downticks = [];
                         this.botActivity = 0;
                         this.botBias = 0;
                     };
@@ -449,31 +607,36 @@
                     
                     // Store trade
                     if(direction > 0) {
-                        this.upticks1m.push(trade);
+                        this.upticks.push(trade);
                     } else {
-                        this.downticks1m.push(trade);
+                        this.downticks.push(trade);
                     }
                     
-                    // Clean old data
-                    const oneMinuteAgo = timestamp - 60000;
-                    this.upticks1m = this.upticks1m.filter(t => t.timestamp > oneMinuteAgo);
-                    this.downticks1m = this.downticks1m.filter(t => t.timestamp > oneMinuteAgo);
+                    // Clean old data based on selected timeframe
+                    const cutoffTime = timestamp - (this.timeframeSeconds * 1000);
+                    this.upticks = this.upticks.filter(t => t.timestamp > cutoffTime);
+                    this.downticks = this.downticks.filter(t => t.timestamp > cutoffTime);
                     
                     // Analyze bot activity
+                    let isBot = false;
                     if(trade.timeDiff < 100 && trade.timeDiff > 0) {
                         this.botActivity = Math.min(100, this.botActivity + 15);
                         this.botBias += direction * 0.05;
+                        isBot = true;
                     } else {
                         this.botActivity = Math.max(0, this.botActivity - 2);
                     }
                     
                     this.botBias *= 0.999; // Slow decay
                     
+                    // Play tick sound
+                    this.playTickSound(direction, quantity, isBot);
+                    
                     this.updateDisplay();
                     
                     // Debug output every 10th trade
-                    if((this.upticks1m.length + this.downticks1m.length) % 10 === 0) {
-                        console.log(`📊 1min: ${this.upticks1m.length} up, ${this.downticks1m.length} down | Bot: ${Math.round(this.botActivity)}%`);
+                    if((this.upticks.length + this.downticks.length) % 10 === 0) {
+                        console.log(`📊 ${this.timeframeSeconds}s: ${this.upticks.length} up, ${this.downticks.length} down | Bot: ${Math.round(this.botActivity)}%`);
                     }
                 }
             }
@@ -488,8 +651,8 @@
             
             updateDisplay() {
                 // Update tick counts
-                const uptickCount = this.upticks1m.length;
-                const downtickCount = this.downticks1m.length;
+                const uptickCount = this.upticks.length;
+                const downtickCount = this.downticks.length;
                 const delta = uptickCount - downtickCount;
                 
                 document.getElementById('uptickCount').textContent = uptickCount;
@@ -497,9 +660,9 @@
                 
                 // Calculate averages
                 const uptickAvg = uptickCount > 0 ? 
-                    (this.upticks1m.reduce((sum, t) => sum + t.size, 0) / uptickCount).toFixed(3) : '0.000';
+                    (this.upticks.reduce((sum, t) => sum + t.size, 0) / uptickCount).toFixed(3) : '0.000';
                 const downtickAvg = downtickCount > 0 ? 
-                    (this.downticks1m.reduce((sum, t) => sum + t.size, 0) / downtickCount).toFixed(3) : '0.000';
+                    (this.downticks.reduce((sum, t) => sum + t.size, 0) / downtickCount).toFixed(3) : '0.000';
                 
                 document.getElementById('uptickAvg').textContent = uptickAvg;
                 document.getElementById('downtickAvg').textContent = downtickAvg;
@@ -555,6 +718,11 @@
                 
                 // Warnings
                 this.updateWarnings();
+                
+                // Play bot activity ambient sound
+                if(this.botActivity > 30) {
+                    this.playBotActivitySound(this.botActivity);
+                }
             }
             
             updateBotSide() {
@@ -615,6 +783,11 @@
                 
                 if(this.botActivity > 50 && Math.abs(this.botBias) > 0.3) {
                     warningAlert.style.display = 'block';
+                    
+                    // Play warning sound once when warning appears
+                    if(warningAlert.style.display !== 'block') {
+                        this.playWarningSound();
+                    }
                     
                     if(this.botBias > 0.3) {
                         warningText.textContent = '🚨 DO NOT TRADE AGAINST LONG - BOTS SUPPORTING UPSIDE';
