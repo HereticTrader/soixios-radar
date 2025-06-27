@@ -1,281 +1,581 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Meme Coin Radar</title>
-  <style>
-    body { background-color: black; color: white; font-family: monospace; padding: 2rem; }
-    h1 { font-size: 1.8rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #333; padding: 0.6rem; text-align: center; }
-    th { background-color: #111; }
-    .ema-long { color: #00ffff; font-weight: bold; }
-    .ema-short { color: #d900ff; font-weight: bold; }
-    .ema-none { color: gray; font-weight: bold; }
-    .super-long { background-color: #00ffff33; }
-    .super-short { background-color: #d900ff33; }
-    #refresh-counter { float: right; font-size: 1rem; color: yellow; }
-    .close-price { font-weight: bold; font-size: 1.3rem; display: block; }
-    .hl-info { color: gray; font-size: 0.7rem; }
-    .top-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-    .refresh-group { display: flex; align-items: center; }
-    select, input[type="text"] {
-      margin-left: 1rem; padding: 0.4rem; background: #111; color: white; border: 1px solid #555;
-    }
-    .export-btn { background: #222; color: white; border: 1px solid gray; padding: 0.3rem 0.8rem; margin-left: 1rem; }
-    .altcoin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; margin-bottom: 0.5rem; }
-    .chart-box { min-height: 200px; overflow: hidden; }
-  </style>
-  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 BOT HUNTER RADAR 🎯</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff41;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .radar-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px;
+            gap: 15px;
+        }
+
+        .chart-section {
+            flex: 0 0 50%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff41;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+        }
+
+        .chart-header {
+            background: linear-gradient(90deg, #ff0040, #ff4000, #ffaa00);
+            padding: 10px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        #tradingview-widget {
+            width: 100%;
+            height: calc(100% - 60px);
+        }
+
+        .detection-panel {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .bot-detector {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid;
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .fake-dump { border-color: #ff0040; }
+        .lightning-wick { border-color: #ff8800; }
+        .volume-cliff { border-color: #8844ff; }
+
+        .detector-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .threat-level {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: all 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .alert-high { 
+            background: #ff0040; 
+            animation: alertPulse 1s infinite;
+        }
+        .alert-medium { background: #ff8800; }
+        .alert-low { background: #00ff41; }
+
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 20px #ff0040; }
+            50% { opacity: 0.6; box-shadow: 0 0 40px #ff0040; }
+        }
+
+        .master-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 64, 0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(255, 0, 64, 0.8);
+            animation: masterAlert 2s infinite;
+            display: none;
+            z-index: 1000;
+        }
+
+        @keyframes masterAlert {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .geometry-viz {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 80px;
+            height: 60px;
+            border: 1px solid currentColor;
+            opacity: 0.6;
+        }
+
+        .candle-shape {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .wick {
+            position: absolute;
+            left: 50%;
+            width: 2px;
+            background: currentColor;
+            transform: translateX(-50%);
+        }
+
+        .body {
+            position: absolute;
+            left: 25%;
+            width: 50%;
+            background: currentColor;
+            opacity: 0.8;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #00ff41;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff41;
+            animation: statusBlink 2s infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .symbol-selector {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+    </style>
 </head>
 <body>
-  <h1>🚀 SOIXIOS Meme Coin Radar</h1>
+    <div class="radar-container">
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="chart-header">
+                🎯 LIVE MARKET SCAN: <span id="current-symbol">BTCUSDT</span> | 1M
+            </div>
+            <div id="tradingview-widget"></div>
+        </div>
 
-  <div style="margin-top: 2rem;">
-    <label for="chartHeight">Chart Height:</label>
-    <input type="number" id="chartHeight" value="300" min="100" max="600" />
-    <label for="gapSize">Chart Gap:</label>
-    <input type="number" id="gapSize" value="0.5" step="0.1" min="0" max="5" />
-    $1
-    <input type="text" id="coinChart" value="ALCHUSDT.P" />
-    <button onclick="loadAltCharts()">📈 Load Altcoin Charts</button>
+        <!-- Detection Panel -->
+        <div class="detection-panel">
+            <!-- Fake Dump Detector -->
+            <div class="bot-detector fake-dump">
+                <div class="detector-title" style="color: #ff0040;">
+                    🔻 FAKE DUMP HUNTER
+                </div>
+                <div class="threat-level" style="color: #ff0040;" id="fake-dump-level">
+                    0%
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span>Tail Ratio:</span>
+                        <span id="tail-ratio">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Volume Spike:</span>
+                        <span id="volume-spike">1.0x</span>
+                    </div>
+                    <div class="metric">
+                        <span>Midpoint:</span>
+                        <span id="midpoint-level">N/A</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="fake-dump-progress"></div>
+                    </div>
+                </div>
+                <div class="geometry-viz">
+                    <div class="candle-shape">
+                        <div class="wick" id="fake-wick" style="top: 0; height: 70%;"></div>
+                        <div class="body" id="fake-body" style="top: 60%; height: 10%;"></div>
+                    </div>
+                </div>
+            </div>
 
-    <div id="altcoin-wrapper" style="margin-bottom: 0rem;">
-      <div class="altcoin-grid" style="margin-bottom: 0rem; padding-bottom: 0rem; margin-top: 0.2rem;">
-  <div id="tv_alt_1m" class="chart-box"></div>
-  <div id="tv_alt_5m" class="chart-box"></div>
-  <div id="tv_alt_15m" class="chart-box"></div>
-</div>
+            <!-- Lightning Wick Detector -->
+            <div class="bot-detector lightning-wick">
+                <div class="detector-title" style="color: #ff8800;">
+                    ⚡ LIGHTNING VELOCITY
+                </div>
+                <div class="threat-level" style="color: #ff8800;" id="lightning-level">
+                    0%
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span>Velocity:</span>
+                        <span id="wick-velocity">0.0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Recovery:</span>
+                        <span id="recovery-speed">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Angle:</span>
+                        <span id="dump-angle">0°</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="lightning-progress"></div>
+                    </div>
+                </div>
+                <div class="geometry-viz">
+                    <div class="candle-shape">
+                        <div class="wick" id="lightning-wick-viz" style="top: 20%; height: 60%;"></div>
+                        <div class="body" id="lightning-body" style="top: 70%; height: 15%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volume Cliff Detector -->
+            <div class="bot-detector volume-cliff">
+                <div class="detector-title" style="color: #8844ff;">
+                    📊 VOLUME CLIFF
+                </div>
+                <div class="threat-level" style="color: #8844ff;" id="volume-level">
+                    0%
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span>Volume Ratio:</span>
+                        <span id="current-volume">1.0x</span>
+                    </div>
+                    <div class="metric">
+                        <span>Cliff Drop:</span>
+                        <span id="cliff-drop">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Manipulation:</span>
+                        <span id="manipulation-score">LOW</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="volume-progress"></div>
+                    </div>
+                </div>
+                <div class="geometry-viz" style="border-color: #8844ff;">
+                    <div style="position: relative; width: 100%; height: 100%;">
+                        <div id="volume-bar" style="position: absolute; bottom: 0; left: 10%; width: 20%; background: #8844ff; height: 80%;"></div>
+                        <div id="cliff-bar" style="position: absolute; bottom: 0; left: 40%; width: 20%; background: #8844ff; height: 30%;"></div>
+                        <div id="current-bar" style="position: absolute; bottom: 0; left: 70%; width: 20%; background: #8844ff; height: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div class="top-controls">
-    <div class="refresh-group">
-      <label>Refresh every:</label>
-      <select id="refreshSelector" onchange="setRefreshInterval()">
-        <option value="8" selected>8s</option>
-        <option value="13">13s</option>
-        <option value="21">21s</option>
-        <option value="5">5s</option>
-      </select>
-      <span id="refresh-counter">⏳ 8</span>
+    <!-- Master Alert -->
+    <div class="master-alert" id="master-alert">
+        🚨 HIGH BOT ACTIVITY DETECTED! 🚨
     </div>
-    <button onclick="exportToCSV()" class="export-btn">📦 Export CSV</button>
-  </div>
-  <p>Favorites (comma-separated):</p>
-  <input type="text" id="coinInput" value="BTCUSDT,ARCUSDT,ALCHUSDT,FUNUSDT,TRUMPUSDT,XRPUSDT,TSTUSDT" style="width: 100%;" />
 
-  <table id="radar-table">
-    <thead>
-      <tr>
-        <th>Symbol</th>
-        <th>Close (H-L)</th>
-        <th>1M</th>
-        <th>3M</th>
-        <th>5M</th>
-        <th>15M</th>
-        <th>1H</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="connection-status">
+            <div class="status-dot"></div>
+            <span>LIVE FEED ACTIVE</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span>Symbol:</span>
+            <select class="symbol-selector" id="symbol-select">
+                <option value="BTCUSDT">BTCUSDT</option>
+                <option value="ETHUSDT">ETHUSDT</option>
+                <option value="ADAUSDT">ADAUSDT</option>
+                <option value="SOLUSDT">SOLUSDT</option>
+                <option value="FUNUSDT">FUNUSDT</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="text" 
+                   id="custom-symbol" 
+                   class="symbol-selector" 
+                   placeholder="Enter symbol (e.g. FUNUSDT)" 
+                   style="display: none; width: 180px;"
+                   maxlength="20">
+            <button id="apply-symbol" 
+                    class="symbol-selector" 
+                    style="display: none; background: #00ff41; color: black; border: none; cursor: pointer; padding: 6px 12px;">
+                Apply
+            </button>
+        </div>
+        <div id="last-update">Last Update: --:--:--</div>
+    </div>
 
-  <div style="margin-top: 3rem;">
-    <div id="tv_btcusdt" class="chart-box"></div>
-  </div>
+    <script>
+        // Initialize TradingView Widget
+        function initTradingViewWidget(symbol = 'BTCUSDT') {
+            const widgetConfig = {
+                "width": "100%",
+                "height": "100%",
+                "symbol": `BINANCE:${symbol}`,
+                "interval": "1",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#000000",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "hide_legend": true,
+                "save_image": false,
+                "container_id": "tradingview-widget"
+            };
 
-  <script type="text/javascript">
-    function createChart(id, symbol, interval, height) {
-      new TradingView.widget({
-        "width": "100%",
-        "height": height,
-        "symbol": `BINANCE:${symbol}`,
-        "interval": interval,
-        "theme": "dark",
-        "style": "1",
-        "locale": "en",
-        "hide_top_toolbar": false,
-        "hide_legend": false,
-        "container_id": id,
-        "studies": [
-          { "id": "EMA@tv-basicstudies", "inputs": { "length": 8 } },
-          { "id": "EMA@tv-basicstudies", "inputs": { "length": 13 } }
-        ]
-      });
-    }
-
-    function loadAltCharts() {
-      const symbol = document.getElementById("coinChart").value.trim().toUpperCase();
-      const height = parseInt(document.getElementById("chartHeight").value);
-      const intervals = ["1", "5", "15"];
-      const ids = ["tv_alt_1m", "tv_alt_5m", "tv_alt_15m"];
-
-      ids.forEach(id => document.getElementById(id).innerHTML = "");
-
-      if (symbol) {
-        for (let i = 0; i < intervals.length; i++) {
-          createChart(ids[i], symbol, intervals[i], height);
+            // Clear existing widget
+            document.getElementById('tradingview-widget').innerHTML = '';
+            
+            // Create new widget script
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify(widgetConfig);
+            
+            document.getElementById('tradingview-widget').appendChild(script);
         }
-      }
 
-      // push table downward
-      const gap = parseFloat(document.getElementById("gapSize").value);
-      document.querySelector(".altcoin-grid").style.marginBottom = `${gap}rem`;
-      document.getElementById("altcoin-wrapper").style.marginBottom = "0px";
-    }
+        // Simulated real-time data (replace with actual WebSocket)
+        let botDetectionData = {
+            fakeDump: { level: 0, tailRatio: 0, volumeSpike: 1.0, midpoint: null },
+            lightning: { level: 0, velocity: 0, recovery: 0, angle: 0 },
+            volumeCliff: { level: 0, volumeRatio: 1.0, cliffDrop: 0, manipulation: 'LOW' }
+        };
 
-    function loadBTCChart() {
-      const height = parseInt(document.getElementById("chartHeight").value);
-      document.getElementById("tv_btcusdt").innerHTML = "";
-      createChart("tv_btcusdt", "BTCUSDT", "1", height);
-    }
+        function updateDetectionDisplay() {
+            // Update Fake Dump
+            const fakeDumpLevel = botDetectionData.fakeDump.level;
+            document.getElementById('fake-dump-level').textContent = `${fakeDumpLevel}%`;
+            document.getElementById('tail-ratio').textContent = `${botDetectionData.fakeDump.tailRatio}%`;
+            document.getElementById('volume-spike').textContent = `${botDetectionData.fakeDump.volumeSpike.toFixed(1)}x`;
+            document.getElementById('midpoint-level').textContent = botDetectionData.fakeDump.midpoint || 'N/A';
+            
+            const fakeDumpProgress = document.getElementById('fake-dump-progress');
+            fakeDumpProgress.style.width = `${fakeDumpLevel}%`;
+            fakeDumpProgress.className = `progress-fill ${fakeDumpLevel > 70 ? 'alert-high' : fakeDumpLevel > 40 ? 'alert-medium' : 'alert-low'}`;
 
-    loadBTCChart();
-    document.getElementById("chartHeight").addEventListener("change", () => {
-      loadBTCChart();
-      loadAltCharts();
-    });
-  </script>
-</body>
-</html>
+            // Update Lightning
+            const lightningLevel = botDetectionData.lightning.level;
+            document.getElementById('lightning-level').textContent = `${lightningLevel}%`;
+            document.getElementById('wick-velocity').textContent = botDetectionData.lightning.velocity.toFixed(1);
+            document.getElementById('recovery-speed').textContent = `${botDetectionData.lightning.recovery}%`;
+            document.getElementById('dump-angle').textContent = `${botDetectionData.lightning.angle}°`;
+            
+            const lightningProgress = document.getElementById('lightning-progress');
+            lightningProgress.style.width = `${lightningLevel}%`;
+            lightningProgress.className = `progress-fill ${lightningLevel > 70 ? 'alert-high' : lightningLevel > 40 ? 'alert-medium' : 'alert-low'}`;
 
+            // Update Volume Cliff
+            const volumeLevel = botDetectionData.volumeCliff.level;
+            document.getElementById('volume-level').textContent = `${volumeLevel}%`;
+            document.getElementById('current-volume').textContent = `${botDetectionData.volumeCliff.volumeRatio.toFixed(1)}x`;
+            document.getElementById('cliff-drop').textContent = `${botDetectionData.volumeCliff.cliffDrop}%`;
+            document.getElementById('manipulation-score').textContent = botDetectionData.volumeCliff.manipulation;
+            
+            const volumeProgress = document.getElementById('volume-progress');
+            volumeProgress.style.width = `${volumeLevel}%`;
+            volumeProgress.className = `progress-fill ${volumeLevel > 70 ? 'alert-high' : volumeLevel > 40 ? 'alert-medium' : 'alert-low'}`;
 
+            // Master Alert
+            const totalThreat = (fakeDumpLevel + lightningLevel + volumeLevel) / 3;
+            if (totalThreat > 70) {
+                document.getElementById('master-alert').style.display = 'block';
+            } else {
+                document.getElementById('master-alert').style.display = 'none';
+            }
 
-
-    // END:)) 
-
-  <script>
-    let refreshCountdown = 5;
-    let refreshInterval = 5;
-
-    function setRefreshInterval() {
-      refreshInterval = parseInt(document.getElementById("refreshSelector").value);
-      refreshCountdown = refreshInterval;
-    }
-
-    function calcEMA(data, length) {
-      const k = 2 / (length + 1);
-      let ema = parseFloat(data[0][4]);
-      for (let i = 1; i < data.length; i++) {
-        ema = data[i][4] * k + ema * (1 - k);
-      }
-      return parseFloat(ema);
-    }
-
-    async function getValidKlines(symbolInput, interval) {
-      const base = symbolInput.replace(".P", "");
-      const testSymbols = symbolInput.endsWith(".P") ? [symbolInput, base] : [base];
-
-      for (let symbol of testSymbols) {
-        try {
-          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-          const data = await res.json();
-          if (Array.isArray(data)) return data;
-        } catch {}
-
-        try {
-          const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=15`);
-          const data = await res.json();
-          if (Array.isArray(data)) return data;
-        } catch {}
-      }
-      return null;
-    }
-
-    async function fetchAllIntervals() {
-      const intervals = ["1m", "3m", "5m", "15m", "1h"];
-      const coins = document.getElementById("coinInput").value.split(",").map(c => c.trim().toUpperCase()).slice(0, 10);
-      const results = [];
-
-      for (let symbol of coins) {
-        const row = { symbol, signals: {}, data: null };
-        for (let interval of intervals) {
-          const data = await getValidKlines(symbol, interval);
-          if (!data) continue;
-
-          const curr = data[data.length - 1];
-          const close = parseFloat(curr[4]);
-          const high = Math.max(...data.map(d => parseFloat(d[2])));
-          const low = Math.min(...data.map(d => parseFloat(d[3])));
-          const ema2 = calcEMA(data.slice(-2), 2);
-          const ema8 = calcEMA(data.slice(-8), 8);
-          const ema13 = calcEMA(data.slice(-13), 13);
-
-          let signal = "EMA NONE";
-          let signalClass = "ema-none";
-          let asterisk = "";
-          if (ema2 > ema8 && ema8 > ema13) {
-            signal = "EMA LONG";
-            signalClass = "ema-long";
-            if (close > ema2) asterisk = "*";
-          } else if (ema2 < ema8 && ema8 < ema13) {
-            signal = "EMA SHORT";
-            signalClass = "ema-short";
-            if (close < ema2) asterisk = "*";
-          }
-
-          row.signals[interval] = { signal: signal + asterisk, signalClass, close, high, low };
-          if (!row.data) row.data = data;
+            // Update timestamp
+            document.getElementById('last-update').textContent = `Last Update: ${new Date().toLocaleTimeString()}`;
         }
-        results.push(row);
-      }
-      renderTable(results);
-    }
 
-    function renderTable(rows) {
-      const tbody = document.querySelector("#radar-table tbody");
-      tbody.innerHTML = "";
+        // Simulate real-time data updates
+        function simulateData() {
+            // Random bot activity simulation
+            if (Math.random() < 0.1) { // 10% chance of bot activity
+                botDetectionData.fakeDump.level = Math.floor(Math.random() * 100);
+                botDetectionData.fakeDump.tailRatio = Math.floor(Math.random() * 80) + 20;
+                botDetectionData.fakeDump.volumeSpike = (Math.random() * 5) + 1;
+                botDetectionData.fakeDump.midpoint = (Math.random() * 10000 + 40000).toFixed(2);
+            } else {
+                botDetectionData.fakeDump.level = Math.max(0, botDetectionData.fakeDump.level - 5);
+            }
 
-      rows.forEach(row => {
-        const tr = document.createElement("tr");
-        const s1 = row.signals["1m"] || {};
-        const s3 = row.signals["3m"] || {};
-        const s5 = row.signals["5m"] || {};
-        const s15 = row.signals["15m"] || {};
-        const s1h = row.signals["1h"] || {};
-        const close = s3.close || 0;
-        const high = s3.high || 0;
-        const low = s3.low || 0;
-        const superSignal = s1.signal === s3.signal && s3.signal === s5.signal && s5.signal === s15.signal && s15.signal === s1h.signal && s1.signal !== "EMA NONE";
-        const superClass = superSignal ? (s1.signal.includes("LONG") ? "super-long" : "super-short") : "";
+            if (Math.random() < 0.08) {
+                botDetectionData.lightning.level = Math.floor(Math.random() * 100);
+                botDetectionData.lightning.velocity = Math.random() * 10;
+                botDetectionData.lightning.recovery = Math.floor(Math.random() * 100);
+                botDetectionData.lightning.angle = Math.floor(Math.random() * 90);
+            } else {
+                botDetectionData.lightning.level = Math.max(0, botDetectionData.lightning.level - 3);
+            }
 
-        tr.className = superClass;
-        tr.innerHTML = `
-          <td>${row.symbol}</td>
-          <td><span class="close-price">${close.toFixed(6)}</span><span class="hl-info">(H-${high.toFixed(6)},L-${low.toFixed(6)})</span></td>
-          <td class="${s1.signalClass || 'ema-none'}">${s1.signal || '---'}</td>
-          <td class="${s3.signalClass || 'ema-none'}">${s3.signal || '---'}</td>
-          <td class="${s5.signalClass || 'ema-none'}">${s5.signal || '---'}</td>
-          <td class="${s15.signalClass || 'ema-none'}">${s15.signal || '---'}</td>
-          <td class="${s1h.signalClass || 'ema-none'}">${s1h.signal || '---'}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
+            if (Math.random() < 0.12) {
+                botDetectionData.volumeCliff.level = Math.floor(Math.random() * 100);
+                botDetectionData.volumeCliff.volumeRatio = (Math.random() * 8) + 1;
+                botDetectionData.volumeCliff.cliffDrop = Math.floor(Math.random() * 80) + 20;
+                const manipulationLevels = ['LOW', 'MODERATE', 'HIGH', 'EXTREME'];
+                botDetectionData.volumeCliff.manipulation = manipulationLevels[Math.floor(Math.random() * 4)];
+            } else {
+                botDetectionData.volumeCliff.level = Math.max(0, botDetectionData.volumeCliff.level - 4);
+            }
 
-    function exportToCSV() {
-      const rows = [...document.querySelectorAll("#radar-table tr")];
-      const csv = rows.map(row => [...row.querySelectorAll("td,th")].map(cell => cell.innerText).join(",")).join("\\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "soixios_snapshot.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
+            updateDetectionDisplay();
+        }
 
-    function updateRefreshCounter() {
-      refreshCountdown--;
-      if (refreshCountdown <= 0) {
-        fetchAllIntervals();
-        refreshCountdown = refreshInterval;
-      }
-      document.getElementById("refresh-counter").textContent = `⏳ ${refreshCountdown}`;
-    }
+        // Symbol change handler
+        document.getElementById('symbol-select').addEventListener('change', function(e) {
+            const selectValue = e.target.value;
+            const customInput = document.getElementById('custom-symbol');
+            const applyButton = document.getElementById('apply-symbol');
+            
+            if (selectValue === 'custom') {
+                customInput.style.display = 'inline-block';
+                applyButton.style.display = 'inline-block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                applyButton.style.display = 'none';
+                document.getElementById('current-symbol').textContent = selectValue;
+                initTradingViewWidget(selectValue);
+            }
+        });
 
-    setInterval(updateRefreshCounter, 1000);
-    fetchAllIntervals();
-  </script>
+        // Custom symbol apply handler
+        document.getElementById('apply-symbol').addEventListener('click', function() {
+            const customSymbol = document.getElementById('custom-symbol').value.toUpperCase().trim();
+            if (customSymbol) {
+                // Validate format (should end with USDT)
+                if (!customSymbol.endsWith('USDT')) {
+                    alert('Please enter a valid USDT pair (e.g., FUNUSDT)');
+                    return;
+                }
+                
+                document.getElementById('current-symbol').textContent = customSymbol;
+                initTradingViewWidget(customSymbol);
+                
+                // Add to dropdown if not exists
+                const select = document.getElementById('symbol-select');
+                let exists = false;
+                for (let option of select.options) {
+                    if (option.value === customSymbol) {
+                        exists = true;
+                        option.selected = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = customSymbol;
+                    newOption.textContent = customSymbol;
+                    newOption.selected = true;
+                    select.insertBefore(newOption, select.querySelector('option[value="custom"]'));
+                }
+                
+                // Hide custom input
+                document.getElementById('custom-symbol').style.display = 'none';
+                document.getElementById('apply-symbol').style.display = 'none';
+            }
+        });
+
+        // Enter key handler for custom input
+        document.getElementById('custom-symbol').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('apply-symbol').click();
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTradingViewWidget();
+            updateDetectionDisplay();
+            
+            // Update every 2 seconds
+            setInterval(simulateData, 2000);
+        });
+    </script>
 </body>
 </html>
